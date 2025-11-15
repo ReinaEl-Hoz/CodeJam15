@@ -1,8 +1,22 @@
+// App.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, BarChart3, LineChart, TrendingUp, Plus, Calendar, Download, Trash2 } from 'lucide-react';
+import {
+  Search,
+  BarChart3,
+  LineChart,
+  TrendingUp,
+  Plus,
+  Calendar,
+  Download,
+  Trash2,
+} from 'lucide-react';
 import Plot from 'react-plotly.js';
 import { fetchChartData } from './services/api';
 import type { PlotlyData } from './services/api';
+
+// 🔹 from your first snippet
+import { LandingPage } from './components/LandingPage';
+// (Sidebar / ChatInterface / ChartsDisplay are not used in this integrated version yet)
 
 interface Message {
   id: string;
@@ -30,6 +44,10 @@ interface Conversation {
 type ChartType = 'bar' | 'line' | 'scatter';
 
 export default function App() {
+  // 🔹 Landing page gate
+  const [showLanding, setShowLanding] = useState(true);
+
+  // === Analytics state (from second App) ===
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -41,12 +59,12 @@ export default function App() {
   const [selectedCharts, setSelectedCharts] = useState<string[]>([]);
   const [chartTypes, setChartTypes] = useState<Record<string, ChartType>>({});
 
-  // NEW: resizable chat panel state
-  const [chatWidth, setChatWidth] = useState(50); // percentage of main content area
+  // Resizable chat panel
+  const [chatWidth, setChatWidth] = useState(50); // %
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Load conversations from localStorage
+  // === Load / save conversations ===
   useEffect(() => {
     const saved = localStorage.getItem('dataAnalyticsConversations');
     if (saved) {
@@ -67,14 +85,12 @@ export default function App() {
     }
   }, []);
 
-  // Save conversations to localStorage
   useEffect(() => {
     if (conversations.length > 0) {
       localStorage.setItem('dataAnalyticsConversations', JSON.stringify(conversations));
     }
   }, [conversations]);
 
-  // Load active conversation
   useEffect(() => {
     if (activeConversation) {
       const conv = conversations.find(c => c.id === activeConversation);
@@ -82,6 +98,9 @@ export default function App() {
         setMessages(conv.messages);
         setCharts(conv.charts);
       }
+    } else {
+      setMessages([]);
+      setCharts([]);
     }
   }, [activeConversation, conversations]);
 
@@ -94,12 +113,9 @@ export default function App() {
   useEffect(() => {
     function handleMouseMove(e: MouseEvent) {
       if (!isResizing || !containerRef.current) return;
-
       const rect = containerRef.current.getBoundingClientRect();
       const offsetX = e.clientX - rect.left;
       let newWidth = (offsetX / rect.width) * 100;
-
-      // clamp between 25% and 75%
       newWidth = Math.max(25, Math.min(75, newWidth));
       setChatWidth(newWidth);
     }
@@ -136,34 +152,37 @@ export default function App() {
     }
   };
 
-  // Map user queries to backend query types
+  // === Query mapping ===
   const mapQueryToType = (query: string): string => {
     const lowercaseQuery = query.toLowerCase();
-    
+
     if (lowercaseQuery.includes('daily') || lowercaseQuery.includes('day')) {
       return 'daily_revenue';
     } else if (lowercaseQuery.includes('product')) {
       return 'revenue_by_product';
     } else if (lowercaseQuery.includes('customer')) {
       return 'revenue_by_customer';
-    } else if (lowercaseQuery.includes('payroll') || lowercaseQuery.includes('salary') || lowercaseQuery.includes('department')) {
+    } else if (
+      lowercaseQuery.includes('payroll') ||
+      lowercaseQuery.includes('salary') ||
+      lowercaseQuery.includes('department')
+    ) {
       return 'payroll_by_department';
     } else if (lowercaseQuery.includes('expense')) {
       return 'expenses_over_time';
     } else if (lowercaseQuery.includes('compare') || lowercaseQuery.includes('vs')) {
       return 'revenue_vs_expenses';
     }
-    
-    // Default to revenue by product
+
     return 'revenue_by_product';
   };
 
+  // === Messaging / chart generation ===
   const handleSendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
 
     let currentConvId = activeConversation;
 
-    // Create new conversation if none is active
     if (!currentConvId) {
       currentConvId = `conv-${Date.now()}`;
       const newConversation: Conversation = {
@@ -184,79 +203,65 @@ export default function App() {
       content,
       timestamp: new Date(),
     };
-    
+
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInputValue('');
     setIsLoading(true);
 
-    // Update conversation with new message
-    setConversations(prev => prev.map(conv => 
-      conv.id === currentConvId 
-        ? { ...conv, messages: newMessages }
-        : conv
-    ));
+    setConversations(prev =>
+      prev.map(conv =>
+        conv.id === currentConvId ? { ...conv, messages: newMessages } : conv
+      )
+    );
 
     try {
-      // Determine which query to run based on user input
       const queryType = mapQueryToType(content);
-      
-      // Fetch real data from backend
       const plotlyData = await fetchChartData(queryType);
-      
+
       const aiMessage: Message = {
         id: `msg-${Date.now()}-ai`,
         role: 'ai',
-        content: `I've analyzed your query and generated a visualization showing ${queryType.replace(/_/g, ' ')}. The data has been fetched from the database.`,
+        content: `I've analyzed your query and generated a visualization showing ${queryType.replace(
+          /_/g,
+          ' '
+        )}. The data has been fetched from the database.`,
         timestamp: new Date(),
       };
-      
+
       const updatedMessages = [...newMessages, aiMessage];
       setMessages(updatedMessages);
 
-      // Create chart with real Plotly data
       const newChart: ChartData = {
         id: `chart-${Date.now()}`,
         title: content.slice(0, 60),
-        plotlyData: plotlyData,
+        plotlyData,
         insight: 'Data retrieved from company database and visualized using Plotly.',
       };
-      
+
       const updatedCharts = [newChart, ...charts];
       setCharts(updatedCharts);
 
-      // Update conversation
-      setConversations(prev => prev.map(conv => 
-        conv.id === currentConvId 
-          ? { ...conv, messages: updatedMessages, charts: updatedCharts }
-          : conv
-      ));
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === currentConvId
+            ? { ...conv, messages: updatedMessages, charts: updatedCharts }
+            : conv
+        )
+      );
     } catch (error) {
       console.error('Error fetching chart data:', error);
-      
       const errorMessage: Message = {
         id: `msg-${Date.now()}-error`,
         role: 'ai',
-        content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please make sure the backend server is running.`,
+        content: `Sorry, I encountered an error: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }. Please make sure the backend server is running.`,
         timestamp: new Date(),
       };
-      
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const downloadChart = (chart: ChartData, chartId: string) => {
-    const plotlyDiv = document.getElementById(chartId);
-    if (plotlyDiv) {
-      // @ts-ignore - Plotly is available on window
-      window.Plotly.downloadImage(plotlyDiv, {
-        format: 'png',
-        width: 1200,
-        height: 800,
-        filename: `${chart.title.replace(/\s+/g, '_')}`
-      });
     }
   };
 
@@ -265,7 +270,20 @@ export default function App() {
     handleSendMessage(inputValue);
   };
 
-  // === Chart type switching helpers ===
+  const downloadChart = (chart: ChartData, chartId: string) => {
+    const plotlyDiv = document.getElementById(chartId);
+    if (plotlyDiv) {
+      // @ts-ignore
+      window.Plotly.downloadImage(plotlyDiv, {
+        format: 'png',
+        width: 1200,
+        height: 800,
+        filename: `${chart.title.replace(/\s+/g, '_')}`,
+      });
+    }
+  };
+
+  // === Chart type switching ===
   const setChartTypeForChart = (chartId: string, type: ChartType) => {
     setChartTypes(prev => ({
       ...prev,
@@ -276,9 +294,11 @@ export default function App() {
   const getDisplayTypeLabel = (chart: ChartData): string => {
     const override = chartTypes[chart.id];
     if (override) return override;
+
     const base = Array.isArray(chart.plotlyData)
       ? 'multi-series'
       : (chart.plotlyData as PlotlyData).type || 'chart';
+
     return base;
   };
 
@@ -306,7 +326,7 @@ export default function App() {
     });
   };
 
-  // === Compare mode helpers ===
+  // === Compare mode ===
   const toggleCompareMode = () => {
     setCompareMode(prev => !prev);
     setSelectedCharts([]);
@@ -318,7 +338,6 @@ export default function App() {
         return prev.filter(id => id !== chartId);
       }
       if (prev.length >= 2) {
-        // Replace the oldest selection with the new one
         return [prev[1], chartId];
       }
       return [...prev, chartId];
@@ -329,6 +348,12 @@ export default function App() {
     selectedCharts.includes(c.id)
   );
 
+  // 🔹 LandingPage gate
+  if (showLanding) {
+    return <LandingPage onGetStarted={() => setShowLanding(false)} />;
+  }
+
+  // 🔹 Main analytics UI (your second App)
   return (
     <div className="flex h-screen bg-white">
       {/* Sidebar */}
@@ -352,12 +377,12 @@ export default function App() {
               No conversations yet
             </div>
           ) : (
-            conversations.map((conv) => (
+            conversations.map(conv => (
               <div
                 key={conv.id}
                 className={`group relative mb-1 rounded-lg transition-all ${
                   activeConversation === conv.id
-                    ? 'bg-white shadow-sm border border-slate-200'
+                    ? 'bg.white shadow-sm border border-slate-200'
                     : 'hover:bg-white/60'
                 }`}
               >
@@ -373,7 +398,7 @@ export default function App() {
                   </div>
                 </button>
                 <button
-                  onClick={(e) => handleDeleteConversation(conv.id, e)}
+                  onClick={e => handleDeleteConversation(conv.id, e)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 opacity-0 group-hover:opacity-100 hover:bg-red-50 rounded transition-all"
                   title="Delete conversation"
                 >
@@ -394,7 +419,7 @@ export default function App() {
 
       {/* Main Content */}
       <div className="flex-1 flex" ref={containerRef}>
-        {/* Left Panel - Chat/Search */}
+        {/* Left Panel - Chat */}
         <div
           className="flex flex-col border-r border-slate-200"
           style={{ width: `${chatWidth}%` }}
@@ -406,7 +431,8 @@ export default function App() {
                   Ask anything about your data
                 </h2>
                 <p className="text-slate-600 mb-8 max-w-md">
-                  Type a question or describe what you'd like to visualize, and I'll generate insights and charts from the database.
+                  Type a question or describe what you'd like to visualize, and I'll
+                  generate insights and charts from the database.
                 </p>
                 <div className="grid grid-cols-1 gap-3 w-full max-w-md">
                   <button
@@ -417,7 +443,9 @@ export default function App() {
                       <TrendingUp className="w-4 h-4 text-indigo-600" />
                       <span className="font-medium text-slate-900">Daily Revenue</span>
                     </div>
-                    <p className="text-sm text-slate-600">Analyze daily revenue trends</p>
+                    <p className="text-sm text-slate-600">
+                      Analyze daily revenue trends
+                    </p>
                   </button>
                   <button
                     onClick={() => handleSendMessage('Show me revenue by product')}
@@ -427,13 +455,15 @@ export default function App() {
                       <BarChart3 className="w-4 h-4 text-indigo-600" />
                       <span className="font-medium text-slate-900">Product Revenue</span>
                     </div>
-                    <p className="text-sm text-slate-600">Break down revenue by product</p>
+                    <p className="text-sm text-slate-600">
+                      Break down revenue by product
+                    </p>
                   </button>
                 </div>
               </div>
             ) : (
               <div className="space-y-6">
-                {messages.map((message) => (
+                {messages.map(message => (
                   <div
                     key={message.id}
                     className={`flex gap-4 ${
@@ -475,7 +505,7 @@ export default function App() {
               <input
                 type="text"
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={e => setInputValue(e.target.value)}
                 placeholder="Ask about your data..."
                 disabled={isLoading}
                 className="w-full px-5 py-4 pr-12 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all disabled:opacity-50"
@@ -533,7 +563,7 @@ export default function App() {
 
           <div className="flex-1 overflow-y-auto p-6">
             {charts.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center px-8">
+              <div className="h-full flex flex-col items-center justify-center text.center px-8">
                 <div className="w-24 h-24 bg-slate-200 rounded-2xl flex items-center justify-center mb-6">
                   <LineChart className="w-12 h-12 text-slate-400" />
                 </div>
@@ -546,7 +576,7 @@ export default function App() {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Comparison block */}
+                {/* Compare block */}
                 {compareMode && selectedChartObjects.length === 2 && (
                   <div className="bg-white rounded-2xl border border-indigo-200 p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
@@ -555,7 +585,8 @@ export default function App() {
                           Side-by-side comparison
                         </h3>
                         <p className="text-xs text-slate-500 mt-1">
-                          Comparing: {selectedChartObjects[0].title} vs {selectedChartObjects[1].title}
+                          Comparing: {selectedChartObjects[0].title} vs{' '}
+                          {selectedChartObjects[1].title}
                         </p>
                       </div>
                     </div>
@@ -563,9 +594,11 @@ export default function App() {
                       {selectedChartObjects.map(chart => {
                         const chartDivId = `compare-${chart.id}`;
                         const plotData = getTransformedData(chart);
-
                         return (
-                          <div key={chart.id} className="border border-slate-200 rounded-xl p-3">
+                          <div
+                            key={chart.id}
+                            className="border border-slate-200 rounded-xl p-3"
+                          >
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="text-sm font-medium text-slate-900 truncate pr-2">
                                 {chart.title}
@@ -582,12 +615,15 @@ export default function App() {
                                   margin: { l: 40, r: 20, t: 20, b: 40 },
                                   paper_bgcolor: 'rgba(0,0,0,0)',
                                   plot_bgcolor: 'rgba(0,0,0,0)',
-                                  font: { family: 'system-ui, sans-serif', size: 10 }
+                                  font: {
+                                    family: 'system-ui, sans-serif',
+                                    size: 10,
+                                  },
                                 }}
                                 config={{
                                   responsive: true,
                                   displayModeBar: true,
-                                  displaylogo: false
+                                  displaylogo: false,
                                 }}
                                 style={{ width: '100%', height: '300px' }}
                               />
@@ -600,7 +636,7 @@ export default function App() {
                 )}
 
                 {/* Individual charts */}
-                {charts.map((chart) => {
+                {charts.map(chart => {
                   const chartDivId = `chart-${chart.id}`;
                   const isSelected = selectedCharts.includes(chart.id);
                   const plotData = getTransformedData(chart);
@@ -616,9 +652,7 @@ export default function App() {
                           : 'border-slate-200'
                       }`}
                       onClick={() => {
-                        if (compareMode) {
-                          toggleChartSelection(chart.id);
-                        }
+                        if (compareMode) toggleChartSelection(chart.id);
                       }}
                     >
                       <div className="flex items-start justify-between mb-4">
@@ -635,7 +669,9 @@ export default function App() {
                                     : 'bg-white text-slate-400 border-slate-300'
                                 }`}
                               >
-                                {isSelected ? selectedCharts.indexOf(chart.id) + 1 : '+'}
+                                {isSelected
+                                  ? selectedCharts.indexOf(chart.id) + 1
+                                  : '+'}
                               </span>
                             )}
                           </div>
@@ -701,7 +737,6 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Plotly Chart */}
                       <div id={chartDivId} onClick={e => e.stopPropagation()}>
                         <Plot
                           data={plotData}
@@ -710,12 +745,12 @@ export default function App() {
                             margin: { l: 50, r: 30, t: 30, b: 50 },
                             paper_bgcolor: 'rgba(0,0,0,0)',
                             plot_bgcolor: 'rgba(0,0,0,0)',
-                            font: { family: 'system-ui, sans-serif' }
+                            font: { family: 'system-ui, sans-serif' },
                           }}
                           config={{
                             responsive: true,
                             displayModeBar: true,
-                            displaylogo: false
+                            displaylogo: false,
                           }}
                           style={{ width: '100%', height: '400px' }}
                         />
@@ -729,7 +764,9 @@ export default function App() {
                               <div className="text-xs font-semibold text-slate-700 mb-1">
                                 Key Insight
                               </div>
-                              <p className="text-sm text-slate-600">{chart.insight}</p>
+                              <p className="text-sm text-slate-600">
+                                {chart.insight}
+                              </p>
                             </div>
                           </div>
                         </div>
