@@ -1,4 +1,3 @@
-// App.tsx
 import React, { useState, useEffect } from 'react';
 import {
   Search,
@@ -14,6 +13,7 @@ import Plot from 'react-plotly.js';
 import { sendChatMessage } from './services/api';
 import type { PlotlyData } from './services/api';
 import { LandingPage } from './components/LandingPage';
+import { useNavigate } from 'react-router-dom';
 
 interface Message {
   id: string;
@@ -40,7 +40,7 @@ interface Conversation {
 
 type ChartType = 'bar' | 'line' | 'scatter';
 
-export default function Home() {
+export default function App() {
   // 🔹 Landing page gate
   const [showLanding, setShowLanding] = useState(true);
 
@@ -57,6 +57,7 @@ export default function Home() {
   const [chartTypes, setChartTypes] = useState<Record<string, ChartType>>({});
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  const navigate = useNavigate();
 
   // Predefined suggestions
   const allSuggestions = [
@@ -288,6 +289,19 @@ export default function Home() {
     handleSearch(suggestion);
   };
 
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.search-container')) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const downloadChart = (chart: ChartData, chartId: string) => {
     const plotlyDiv = document.getElementById(chartId);
     if (plotlyDiv) {
@@ -385,7 +399,7 @@ export default function Home() {
         <div className="p-4 border-b border-slate-200">
           <button
             onClick={handleNewConversation}
-            className="w-full flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all font-medium"
+            className="w-full flex items-center gap-2 px-4 py-2.5 bg-blue-800 hover:bg-blue-700 text-white rounded-lg transition-all font-medium"
           >
             <Plus className="w-4 h-4" />
             New Search
@@ -443,52 +457,65 @@ export default function Home() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* iOS-style Siri Search Header */}
+        {/* iOS-style Siri Search Header (MODIFIED) */}
         <div className="p-8 pb-6 bg-gradient-to-b from-slate-50 to-white border-b border-slate-200">
-          <div className="max-w-2xl mx-auto">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 transition-all" />
-              <input
-                type="text"
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                onFocus={() => setShowSuggestions(true)}
-                placeholder="Ask about your data"
-                disabled={isLoading}
-                autoFocus
-                className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-50 shadow-lg hover:shadow-xl focus:shadow-2xl backdrop-blur-sm"
-                style={{
-                  background: showSuggestions 
-                    ? 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(239,246,255,0.95) 100%)'
-                    : 'white'
-                }}
-              />
-
-              {/* Dynamic Suggestions Dropdown */}
-              {showSuggestions && !isLoading && filteredSuggestions.length > 0 && (
-                <div 
-                  className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-2xl shadow-2xl overflow-hidden z-10 animate-in fade-in slide-in-from-top-2 duration-200"
+          <div className="flex items-center justify-center max-w-4xl mx-auto gap-4"> 
+            <div className="flex-1 search-container"> 
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 transition-all" />
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={e => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  onFocus={() => setShowSuggestions(true)}
+                  onClick={() => setShowSuggestions(!showSuggestions)}
+                  placeholder="Ask Siri about your data"
+                  disabled={isLoading}
+                  autoFocus
+                  className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-50 shadow-lg hover:shadow-xl focus:shadow-2xl backdrop-blur-sm cursor-pointer"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%)',
+                    background: showSuggestions 
+                      ? 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(239,246,255,0.95) 100%)'
+                      : 'white'
                   }}
-                >
-                  <div className="p-2 border-b border-slate-100/50 bg-gradient-to-r from-slate-50/50 to-blue-50/30">
-                    <p className="text-xs font-semibold text-slate-500 px-3 py-1">SUGGESTIONS</p>
+                />
+
+                {/* Dynamic Suggestions Dropdown */}
+                {showSuggestions && !isLoading && filteredSuggestions.length > 0 && (
+                  <div 
+                    className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-2xl shadow-2xl overflow-hidden z-10 animate-in fade-in slide-in-from-top-2 duration-200"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%)',
+                    }}
+                  >
+                    <div className="p-2 border-b border-slate-100/50 bg-gradient-to-r from-slate-50/50 to-blue-50/30">
+                      <p className="text-xs font-semibold text-slate-500 px-3 py-1">SUGGESTIONS</p>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {filteredSuggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          className="w-full text-left px-4 py-3 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 flex items-center gap-3 border-b border-slate-50/50 last:border-b-0 group"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                            <Search className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                          </div>
+                          <span className="text-sm text-slate-700 group-hover:text-blue-900 font-medium">{suggestion}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {filteredSuggestions.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className="w-full text-left px-4 py-3 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 flex items-center gap-3 border-b border-slate-50/50 last:border-b-0 group"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                          <Search className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                        </div>
-                        <span className="text-sm text-slate-700 group-hover:text-blue-900 font-medium">{suggestion}</span>
-                      </button>
-                    ))}
+                )}
+              </div>
+              
+              {/* Loading State */}
+              {isLoading && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                    <p className="text-sm text-blue-900">Searching your data...</p>
                   </div>
                 </div>
               )}
@@ -648,7 +675,7 @@ export default function Home() {
                                 <span
                                   className={`inline-flex items-center justify-center w-5 h-5 text-[10px] font-semibold rounded-full border ${
                                     isSelected
-                                      ? 'bg-blue-600 text-white border-blue-600'
+                                      ? 'bg-blue-800 text-white border-blue-600'
                                       : 'bg-white text-slate-400 border-slate-300'
                                   }`}
                                 >
