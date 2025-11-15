@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, BarChart3, LineChart, TrendingUp, Plus, Sparkles, Calendar } from 'lucide-react';
+import DynamicChart from './DynamicChart';
 
 interface Message {
   id: string;
@@ -38,7 +39,18 @@ export default function App() {
       timestamp: new Date(Date.now() - 86400000),
     },
   ]);
-  
+  const chartConfig = {
+      chartType: "bar" as const,
+      data: [
+        { date: '2023-01-01', revenue: 1200, profit: 300 },
+        { date: '2023-01-02', revenue: 1500, profit: 400 },
+        { date: '2023-01-03', revenue: 1000, profit: 200 },
+      ],
+      xKey: "date",
+      yKey: "revenue",
+      layoutOptions: { title: "Revenue over Time" }
+    };
+
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [charts, setCharts] = useState<ChartData[]>([]);
@@ -289,18 +301,15 @@ export default function App() {
 
                     {/* Simple Chart Visualization */}
                     <div className="h-48 flex items-end justify-between gap-2 mb-4">
-                      {chart.data.map((point, idx) => (
-                        <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-                          <div
-                            className="w-full bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t-lg transition-all hover:from-indigo-600 hover:to-indigo-500"
-                            style={{
-                              height: `${(point.value / 600) * 100}%`,
-                              minHeight: '8px',
-                            }}
-                          />
-                          <span className="text-xs text-slate-500">{point.label}</span>
-                        </div>
-                      ))}
+                      <div style={{ width: '800px', height: '500px' }}>
+                        <DynamicChart
+                          chartType={chartConfig.chartType}
+                          data={chartConfig.data}
+                          xKey={chartConfig.xKey}
+                          yKey={chartConfig.yKey}
+                          layoutOptions={chartConfig.layoutOptions}
+                        />
+                      </div>
                     </div>
 
                     {chart.insight && (
