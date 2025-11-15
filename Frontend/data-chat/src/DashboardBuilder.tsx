@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
+import {type Layout} from 'react-grid-layout';
+import { Responsive, WidthProvider} from 'react-grid-layout';
 import { Type, BarChart3, LineChart, PieChart, Activity, TrendingUp, X, Heading1, FileText, Image as ImageIcon } from 'lucide-react';
 import { BarChart, Bar, LineChart as RechartsLine, Line, PieChart as RechartsPie, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import html2canvas from 'html2canvas';
