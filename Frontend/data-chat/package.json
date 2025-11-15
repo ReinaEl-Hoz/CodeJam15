@@ -10,15 +10,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "lucide-react": "^0.553.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-plotly.js": "^2.6.0",
+    "react-router-dom": "^7.9.6",
+    "recharts": "^3.4.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
-    "@tailwindcss/postcss": "^4.1.17",
     "@types/node": "^24.10.0",
+    "@types/plotly.js": "^3.0.8",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@types/react-plotly.js": "^2.6.3",
     "@vitejs/plugin-react": "^5.1.0",
     "autoprefixer": "^10.4.22",
     "eslint": "^9.39.1",
