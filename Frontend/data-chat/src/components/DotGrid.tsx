@@ -38,9 +38,6 @@ export interface DotGridProps {
   returnDuration?: number;
   className?: string;
   style?: React.CSSProperties;
-  maxLineDist?: number;    // Maximum distance for two dots to connect
-  lineColor?: string;      // Color of the connecting lines
-  lineOpacity?: number;    // Base opacity of the lines
 }
 
 function hexToRgb(hex: string) {
@@ -56,7 +53,7 @@ function hexToRgb(hex: string) {
 const DotGrid: React.FC<DotGridProps> = ({
   dotSize = 16,
   gap = 32,
-  baseColor = '#5227FF',
+  baseColor = '#200687ff',
   activeColor = '#5227FF',
   proximity = 150,
   speedTrigger = 100,
@@ -66,9 +63,6 @@ const DotGrid: React.FC<DotGridProps> = ({
   resistance = 750,
   returnDuration = 1.5,
   className = '',
-  maxLineDist = 120, // A reasonable default connection distance
-  lineColor = '#4f46e5',
-  lineOpacity = 0.4,
   style
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -87,7 +81,6 @@ const DotGrid: React.FC<DotGridProps> = ({
 
   const baseRgb = useMemo(() => hexToRgb(baseColor), [baseColor]);
   const activeRgb = useMemo(() => hexToRgb(activeColor), [activeColor]);
-  const lineRgb = useMemo(() => hexToRgb(lineColor), [lineColor]);
 
   const circlePath = useMemo(() => {
     if (typeof window === 'undefined' || !window.Path2D) return null;
@@ -112,9 +105,9 @@ const DotGrid: React.FC<DotGridProps> = ({
     const ctx = canvas.getContext('2d');
     if (ctx) ctx.scale(dpr, dpr);
 
+    const cols = Math.floor((width + gap) / (dotSize + gap));
+    const rows = Math.floor((height + gap) / (dotSize + gap));
     const cell = dotSize + gap;
-    const cols = Math.floor((width + gap) / cell);
-    const rows = Math.floor((height + gap) / cell);
 
     const gridW = cell * cols - gap;
     const gridH = cell * rows - gap;
@@ -141,8 +134,6 @@ const DotGrid: React.FC<DotGridProps> = ({
 
     let rafId: number;
     const proxSq = proximity * proximity;
-    const maxLineDistSq = maxLineDist * maxLineDist;
-    const dots = dotsRef.current;
 
     const draw = () => {
       const canvas = canvasRef.current;
@@ -152,43 +143,8 @@ const DotGrid: React.FC<DotGridProps> = ({
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const { x: px, y: py } = pointerRef.current;
-      
-      // --- Draw Connecting Lines ---
-      for (let i = 0; i < dots.length; i++) {
-          const dotA = dots[i];
-          const ax = dotA.cx + dotA.xOffset;
-          const ay = dotA.cy + dotA.yOffset;
 
-          for (let j = i + 1; j < dots.length; j++) {
-              const dotB = dots[j];
-              const bx = dotB.cx + dotB.xOffset;
-              const by = dotB.cy + dotB.yOffset;
-
-              // Calculate distance squared
-              const dx = ax - bx;
-              const dy = ay - by;
-              const dsq = dx * dx + dy * dy;
-
-              if (dsq < maxLineDistSq) {
-                  const dist = Math.sqrt(dsq);
-                  // Opacity falls off the further apart the dots are
-                  const t = 1 - dist / maxLineDist; 
-                  
-                  // Set line style
-                  ctx.beginPath();
-                  ctx.moveTo(ax, ay);
-                  ctx.lineTo(bx, by);
-                  
-                  ctx.strokeStyle = `rgba(${lineRgb.r}, ${lineRgb.g}, ${lineRgb.b}, ${lineOpacity * t})`;
-                  ctx.lineWidth = 1;
-                  ctx.stroke();
-              }
-          }
-      }
-      // --- End Draw Connecting Lines ---
-
-      // --- Draw Dots ---
-      for (const dot of dots) {
+      for (const dot of dotsRef.current) {
         const ox = dot.cx + dot.xOffset;
         const oy = dot.cy + dot.yOffset;
         const dx = dot.cx - px;
@@ -211,14 +167,13 @@ const DotGrid: React.FC<DotGridProps> = ({
         ctx.fill(circlePath);
         ctx.restore();
       }
-      // --- End Draw Dots ---
 
       rafId = requestAnimationFrame(draw);
     };
 
     draw();
     return () => cancelAnimationFrame(rafId);
-  }, [proximity, baseColor, activeRgb, baseRgb, circlePath, maxLineDist, lineRgb, lineOpacity]);
+  }, [proximity, baseColor, activeRgb, baseRgb, circlePath]);
 
   useEffect(() => {
     buildGrid();
@@ -324,7 +279,7 @@ const DotGrid: React.FC<DotGridProps> = ({
   }, [maxSpeed, speedTrigger, proximity, resistance, returnDuration, shockRadius, shockStrength]);
 
   return (
-    <section className={`flex items-center justify-center h-full w-full relative ${className}`} style={style}>
+    <section className={`p-4 flex items-center justify-center h-full w-full relative ${className}`} style={style}>
       <div ref={wrapperRef} className="w-full h-full relative">
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
       </div>

@@ -41,7 +41,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
 
           <button
             onClick={onGetStarted}
-            className="group relative px-8 py-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all duration-300 hover:scale-110 shadow-xl hover:shadow-2xl mt-8 animate-fade-in-delay-2 transform-gpu"
+            className="group relative px-8 py-4 bg-blue-800 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all duration-300 hover:scale-110 shadow-xl hover:shadow-2xl mt-8 animate-fade-in-delay-2 transform-gpu"
           >
             <span className="flex items-center gap-2">
               Get Started

@@ -358,7 +358,7 @@ export default function App() {
         <div className="p-4 border-b border-slate-200">
           <button
             onClick={handleNewConversation}
-            className="w-full flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all font-medium"
+            className="w-full flex items-center gap-2 px-4 py-2.5 bg-blue-800 hover:bg-blue-900 text-white rounded-lg transition-all font-medium"
           >
             <Plus className="w-4 h-4" />
             New Analysis
@@ -473,8 +473,8 @@ export default function App() {
                     <div
                       className={`rounded-2xl px-4 py-3 max-w-[80%] ${
                         message.role === 'user'
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-100 text-slate-900' // AI message without icon
+                         ? 'bg-blue-800 text-white' 
+                          : 'bg-slate-100 text-slate-900'
                       }`}
                     >
                       <p className="text-sm leading-relaxed">{message.content}</p>
@@ -501,12 +501,12 @@ export default function App() {
                 onChange={e => setInputValue(e.target.value)}
                 placeholder="Ask about your data..."
                 disabled={isLoading}
-                className="w-full px-5 py-4 pr-12 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all disabled:opacity-50"
+                className="w-full px-5 py-4 pr-12 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:opacity-50"
               />
               <button
                 type="submit"
                 disabled={!inputValue.trim() || isLoading}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl transition-all"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-blue-800 hover:bg-blue-900 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl transition-all"
               >
                 <Search className="w-4 h-4" />
               </button>
