@@ -44,3 +44,37 @@ export const getAvailableQueries = async (): Promise<string[]> => {
   const result = await response.json();
   return result.queries;
 };
+
+export interface ChatQuery {
+  name: string;
+  sql: string;
+  data: any[];
+  error?: string;
+  suggested_chart: {
+    type: string;
+    x: string;
+    y: string | string[];  // Can be single column or multiple columns for multi-series
+    title: string;
+  };
+}
+
+export interface ChatResponse {
+  success: boolean;
+  queries?: ChatQuery[];
+  error?: string;
+}
+
+export const sendChatMessage = async (userInput: string): Promise<ChatResponse> => {
+  const response = await fetch(`${API_BASE_URL}/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      user_input: userInput,
+    }),
+  });
+
+  const result: ChatResponse = await response.json();
+  return result;
+};
