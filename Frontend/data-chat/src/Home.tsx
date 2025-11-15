@@ -13,12 +13,11 @@ interface Message {
 interface ChartData {
     id: string;
     title: string;
-    type: 'line' | 'bar' | 'area';
+    type: 'line' | 'bar';  // Only line and bar charts are supported
     data: any[];
     insight?: string;
     xKey?: string;
     yKey?: string;
-    yKeys?: string[];  // For multi-series charts
 }
 
 interface Conversation {
@@ -106,6 +105,18 @@ export default function Home() {
             // Call backend API
             const response = await sendChatMessage(content);
             
+            // Check for error response
+            if (!response.success || response.error) {
+                const errorMessage: Message = {
+                    id: `msg-${Date.now()}-ai`,
+                    role: 'ai',
+                    content: `${response.error || 'Sorry, I couldn\'t process your request. Please try asking about the database tables: customers, products, orders, departments, payroll, expenses, or daily_revenue. \nOnly simple line or bar charts are supported.'}`,
+                    timestamp: new Date(),
+                };
+                setMessages((prev) => [...prev, errorMessage]);
+                return;
+            }
+            
             if (response.success && response.queries && response.queries.length > 0) {
                 const query = response.queries[0];
                 
@@ -119,19 +130,39 @@ export default function Home() {
                 const aiMessage: Message = {
                     id: `msg-${Date.now()}-ai`,
                     role: 'ai',
-                    content: `I've generated a SQL query for your request:\n\n\`\`\`sql\n${query.sql}\n\`\`\`\n\nChart Type: ${query.suggested_chart.type}\nTitle: ${query.suggested_chart.title}${dataInfo}`,
+                    content: ``,
                     timestamp: new Date(),
                 };
                 setMessages((prev) => [...prev, aiMessage]);
 
+                // Validate chart type (should only be line or bar)
+                if (query.suggested_chart.type !== 'line' && query.suggested_chart.type !== 'bar') {
+                    const errorMessage: Message = {
+                        id: `msg-${Date.now()}-ai`,
+                        role: 'ai',
+                        content: `Unsupported chart type: ${query.suggested_chart.type}. Only 'line' and 'bar' charts are supported.`,
+                        timestamp: new Date(),
+                    };
+                    setMessages((prev) => [...prev, errorMessage]);
+                    return;
+                }
+                
+                // Check for multi-series (not allowed)
+                if (Array.isArray(query.suggested_chart.y)) {
+                    const errorMessage: Message = {
+                        id: `msg-${Date.now()}-ai`,
+                        role: 'ai',
+                        content: `❌ Multi-series charts are not supported. Please request a single metric to visualize.`,
+                        timestamp: new Date(),
+                    };
+                    setMessages((prev) => [...prev, errorMessage]);
+                    return;
+                }
+                
                 // Transform data for chart
-                const chartTypeMap: Record<string, 'line' | 'bar' | 'area'> = {
+                const chartTypeMap: Record<string, 'line' | 'bar'> = {
                     'line': 'line',
-                    'bar': 'bar',
-                    'area': 'area',
-                    'pie': 'bar', // Map pie to bar
-                    'scatter': 'line',
-                    'histogram': 'bar'
+                    'bar': 'bar'
                 };
                 
                 // Transform the data to match chart format
@@ -139,39 +170,31 @@ export default function Home() {
                 let chartData: any[] = [];
                 const xKey = query.suggested_chart.x;
                 const yKey = query.suggested_chart.y;
-                const isMultiSeries = Array.isArray(yKey);
                 
                 if (query.data && query.data.length > 0) {
                     console.log('Processing chart data:', { 
                         dataLength: query.data.length, 
                         firstRow: query.data[0],
                         xKey, 
-                        yKey, 
-                        isMultiSeries 
+                        yKey
                     });
                     
-                    if (isMultiSeries) {
-                        // Multi-series chart: keep all data as-is, DynamicChart will handle multipleSeries
-                        // Just ensure the data is in the right format
-                        chartData = query.data;
-                    } else {
-                        // Single series chart
-                        chartData = query.data.map((row: any) => {
-                            // Try to find the x and y values in the row
-                            // Handle case-insensitive matching and different column name formats
-                            const xValue = row[xKey] ?? row[xKey?.toLowerCase()] ?? row[xKey?.toUpperCase()] ?? Object.values(row)[0];
-                            const yValue = row[yKey as string] ?? row[(yKey as string)?.toLowerCase()] ?? row[(yKey as string)?.toUpperCase()] ?? Object.values(row)[1];
-                            
-                            return {
-                                label: xValue !== undefined && xValue !== null ? String(xValue) : '',
-                                value: yValue !== undefined && yValue !== null ? Number(yValue) : 0,
-                                // Keep all original data for reference
-                                ...row
-                            };
-                        });
+                    // Single series chart only
+                    chartData = query.data.map((row: any) => {
+                        // Try to find the x and y values in the row
+                        // Handle case-insensitive matching and different column name formats
+                        const xValue = row[xKey] ?? row[xKey?.toLowerCase()] ?? row[xKey?.toUpperCase()] ?? Object.values(row)[0];
+                        const yValue = row[yKey as string] ?? row[(yKey as string)?.toLowerCase()] ?? row[(yKey as string)?.toUpperCase()] ?? Object.values(row)[1];
                         
-                        console.log('Transformed chart data:', chartData.slice(0, 3));
-                    }
+                        return {
+                            label: xValue !== undefined && xValue !== null ? String(xValue) : '',
+                            value: yValue !== undefined && yValue !== null ? Number(yValue) : 0,
+                            // Keep all original data for reference
+                            ...row
+                        };
+                    });
+                    
+                    console.log('Transformed chart data:', chartData.slice(0, 3));
                 } else {
                     console.warn('No data returned from query:', query);
                 }
@@ -181,9 +204,8 @@ export default function Home() {
                     title: query.suggested_chart.title,
                     type: chartTypeMap[query.suggested_chart.type] || 'bar',
                     data: chartData,
-                    xKey: isMultiSeries ? xKey : 'label',  // Use actual xKey for multi-series, 'label' for single
-                    yKey: isMultiSeries ? undefined : 'value',  // undefined for multi-series, will use multipleSeries
-                    yKeys: isMultiSeries ? (yKey as string[]) : undefined,  // Store y keys for multi-series
+                    xKey: 'label',
+                    yKey: 'value',
                     insight: query.error ? `Error: ${query.error}` : `SQL Query: ${query.sql}`,
                 };
                 
@@ -192,8 +214,7 @@ export default function Home() {
                     type: newChart.type,
                     dataLength: newChart.data.length,
                     xKey: newChart.xKey,
-                    yKey: newChart.yKey,
-                    yKeys: newChart.yKeys
+                    yKey: newChart.yKey
                 });
                 
                 setCharts((prev) => [newChart, ...prev]);
@@ -429,15 +450,10 @@ export default function Home() {
                                         <div className="py-4" style={{ minHeight: '400px' }}>
                                             {chart.data && chart.data.length > 0 ? (
                                                 <DynamicChart
-                                                    chartType={chart.type === 'line' ? 'line' : chart.type === 'bar' ? 'bar' : chart.type === 'area' ? 'line' : 'line'}
+                                                    chartType={chart.type}
                                                     data={chart.data}
                                                     xKey={chart.xKey || 'label'}
-                                                    yKey={chart.yKey || undefined}
-                                                    multipleSeries={chart.yKeys && chart.yKeys.length > 0 ? chart.yKeys.map((yKey) => ({
-                                                        name: yKey,
-                                                        xKey: chart.xKey || 'label',
-                                                        yKey: yKey
-                                                    })) : undefined}
+                                                    yKey={chart.yKey || 'value'}
                                                     layoutOptions={{ title: { text: chart.title } }}
                                                 />
                                             ) : (

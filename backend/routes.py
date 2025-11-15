@@ -135,6 +135,34 @@ def chat():
         print(json.dumps(result.model_dump(), indent=2))
         print("=" * 70 + "\n")
         
+        # Check for error response from AI
+        if result.error:
+            print(f"\n⚠️  AI Error: {result.error}\n")
+            return jsonify({
+                'success': False,
+                'error': result.error
+            }), 400
+        
+        # Validate chart types and y field
+        for q in result.queries:
+            # Check chart type
+            if q.suggested_chart.type not in ['line', 'bar']:
+                error_msg = f"Unsupported chart type: {q.suggested_chart.type}. Only 'line' and 'bar' charts are supported."
+                print(f"\n⚠️  Validation Error: {error_msg}\n")
+                return jsonify({
+                    'success': False,
+                    'error': error_msg
+                }), 400
+            
+            # Check if y is an array (multi-series not allowed)
+            if isinstance(q.suggested_chart.y, list):
+                error_msg = "Multi-series charts are not supported. Please request a single metric to visualize."
+                print(f"\n⚠️  Validation Error: {error_msg}\n")
+                return jsonify({
+                    'success': False,
+                    'error': error_msg
+                }), 400
+        
         # Execute SQL queries and get data
         queries_with_data = []
         for q in result.queries:
