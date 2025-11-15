@@ -8,6 +8,8 @@ import {
   Calendar,
   Download,
   Trash2,
+  Copy,
+  Check,
 } from 'lucide-react';
 import Plot from 'react-plotly.js';
 import { sendChatMessage } from './services/api';
@@ -57,6 +59,7 @@ export default function App() {
   const [chartTypes, setChartTypes] = useState<Record<string, ChartType>>({});
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  const [copiedChartId, setCopiedChartId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Predefined suggestions
@@ -226,7 +229,7 @@ export default function App() {
               id: `chart-${Date.now()}-${query.name}`,
               title: query.suggested_chart.title,
               plotlyData: query.plotly_data,
-              insight: query.error ? `Error: ${query.error}` : `SQL Query: ${query.sql}`,
+              insight: query.error ? `Error: ${query.error}` : `${query.sql}`,
             });
           } else if (query.error) {
             // Query had an error
@@ -693,8 +696,16 @@ export default function App() {
                             className="flex items-center gap-2"
                             onClick={e => e.stopPropagation()}
                           >
+                        <button
+                              onClick={() => navigate(`/report/${chart.id}`)}
+                              className="flex items-center gap-1 px-4 py-1.5 bg-blue-800 hover:bg-blue-700 text-white rounded-2xl transition-all text-xs font-semibold shadow-lg hover:shadow-xl whitespace-nowrap text-base"
+                            >
+                              <TrendingUp className="w-4 h-4" />
+                              View Key Insights
+                            </button>
                             {/* Chart type switcher */}
                             <div className="inline-flex items-center bg-slate-50 rounded-full border border-slate-200 overflow-hidden">
+                              
                               <button
                                 type="button"
                                 onClick={() => setChartTypeForChart(chart.id, 'bar')}
@@ -766,16 +777,32 @@ export default function App() {
                         </div>
 
                         {chart.insight && (
-                          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 mt-4">
-                            <div className="flex items-start gap-3">
-                              <TrendingUp className="w-4 h-4 text-blue-800 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <div className="text-xs font-semibold text-slate-700 mb-1">
-                                  Key Insight
+                          <div className="flex items-start gap-4 mt-4">
+                            <div className="flex-1 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="text-xs font-semibold text-slate-700">
+                                  SQL Query
                                 </div>
-                                <p className="text-sm text-slate-600">
-                                  {chart.insight}
-                                </p>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(chart.insight || '');
+                                    setCopiedChartId(chart.id);
+                                    setTimeout(() => setCopiedChartId(null), 2000);
+                                  }}
+                                  className="p-1.5 hover:bg-slate-200 rounded transition-all"
+                                  title="Copy SQL query"
+                                >
+                                  {copiedChartId === chart.id ? (
+                                    <Check className="w-4 h-4 text-green-600" />
+                                  ) : (
+                                    <Copy className="w-4 h-4 text-slate-600" />
+                                  )}
+                                </button>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-slate-200">
+                                <pre className="text-xs text-slate-800 font-mono overflow-x-auto whitespace-pre-wrap break-words">
+                                  <code>{chart.insight}</code>
+                                </pre>
                               </div>
                             </div>
                           </div>

@@ -137,6 +137,8 @@ Rules:
 - Only use tables and columns from the schema
 - Generate valid SQL with proper syntax
 - Chart type MUST be "line" (for time series) or "bar" (for categories) ONLY
+- Use DuckDB syntax for the SQL query
+- When comparing time data, make sure the types are compatible
 - x,y field MUST be a single string column name, NEVER an array
 - If user asks about unrelated topics, return error JSON
 - Include semicolon at end of SQL
