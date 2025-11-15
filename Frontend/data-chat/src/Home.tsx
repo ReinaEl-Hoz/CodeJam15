@@ -1,4 +1,3 @@
-// App.tsx
 import React, { useState, useEffect } from 'react';
 import {
   Search,
@@ -9,11 +8,14 @@ import {
   Calendar,
   Download,
   Trash2,
+  Copy,
+  Check,
 } from 'lucide-react';
 import Plot from 'react-plotly.js';
-import { fetchChartData } from './services/api';
+import { sendChatMessage } from './services/api';
 import type { PlotlyData } from './services/api';
 import { LandingPage } from './components/LandingPage';
+import { useNavigate } from 'react-router-dom';
 
 interface Message {
   id: string;
@@ -40,7 +42,7 @@ interface Conversation {
 
 type ChartType = 'bar' | 'line' | 'scatter';
 
-export default function Home() {
+export default function App() {
   // 🔹 Landing page gate
   const [showLanding, setShowLanding] = useState(true);
 
@@ -50,12 +52,15 @@ export default function Home() {
   const [charts, setCharts] = useState<ChartData[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [compareMode, setCompareMode] = useState(false);
   const [selectedCharts, setSelectedCharts] = useState<string[]>([]);
   const [chartTypes, setChartTypes] = useState<Record<string, ChartType>>({});
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  const [copiedChartId, setCopiedChartId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // Predefined suggestions
   const allSuggestions = [
@@ -80,10 +85,11 @@ export default function Home() {
         const conversationsWithDates = parsed.map((conv: any) => ({
           ...conv,
           timestamp: new Date(conv.timestamp),
-          messages: conv.messages.map((msg: any) => ({
+          messages: (conv.messages || []).map((msg: any) => ({
             ...msg,
             timestamp: new Date(msg.timestamp),
           })),
+          charts: conv.charts || [],
         }));
         setConversations(conversationsWithDates);
       } catch (error) {
@@ -140,37 +146,14 @@ export default function Home() {
     }
   };
 
-  // === Query mapping ===
-  const mapQueryToType = (query: string): string => {
-    const lowercaseQuery = query.toLowerCase();
-
-    if (lowercaseQuery.includes('daily') || lowercaseQuery.includes('day')) {
-      return 'daily_revenue';
-    } else if (lowercaseQuery.includes('product')) {
-      return 'revenue_by_product';
-    } else if (lowercaseQuery.includes('customer')) {
-      return 'revenue_by_customer';
-    } else if (
-      lowercaseQuery.includes('payroll') ||
-      lowercaseQuery.includes('salary') ||
-      lowercaseQuery.includes('department')
-    ) {
-      return 'payroll_by_department';
-    } else if (lowercaseQuery.includes('expense')) {
-      return 'expenses_over_time';
-    } else if (lowercaseQuery.includes('compare') || lowercaseQuery.includes('vs')) {
-      return 'revenue_vs_expenses';
-    }
-
-    return 'revenue_by_product';
-  };
-
   // === Search handling ===
   const handleSearch = async (content: string) => {
     if (!content.trim() || isLoading) return;
 
     // Hide suggestions when searching
     setShowSuggestions(false);
+    // Clear any previous error
+    setErrorMessage(null);
 
     let currentConvId = activeConversation;
 
@@ -188,33 +171,107 @@ export default function Home() {
       setActiveConversation(currentConvId);
     }
 
+    // Add user message
+    const userMessage: Message = {
+      id: `msg-${Date.now()}`,
+      role: 'user',
+      content,
+      timestamp: new Date(),
+    };
+
+    setConversations(prev =>
+      prev.map(conv =>
+        conv.id === currentConvId
+          ? { ...conv, messages: [...conv.messages, userMessage] }
+          : conv
+      )
+    );
+
     setInputValue('');
     setIsLoading(true);
 
     try {
-      const queryType = mapQueryToType(content);
-      const plotlyData = await fetchChartData(queryType);
+      // Call chat API
+      const response = await sendChatMessage(content);
 
-      const newChart: ChartData = {
-        id: `chart-${Date.now()}`,
-        title: content.slice(0, 60),
-        plotlyData,
-        insight: 'Data retrieved from company database and visualized using Plotly.',
-      };
+      // Check for error response
+      if (!response.success || response.error) {
+        const errorMsg = response.error || 'Sorry, I couldn\'t process your request. Please try asking about the database tables: customers, products, orders, departments, payroll, expenses, or daily_revenue. \nOnly simple line or bar charts are supported.';
+        setErrorMessage(errorMsg);
+        return;
+      }
 
-      const updatedCharts = [newChart, ...charts];
-      setCharts(updatedCharts);
+      if (response.success && response.queries && response.queries.length > 0) {
+        // Process all queries (handle multiple charts)
+        const updatedCharts: ChartData[] = [...charts];
+        const aiMessages: Message[] = [];
+        let hasQueryError = false;
+        let queryErrorMsg = '';
 
-      setConversations(prev =>
-        prev.map(conv =>
-          conv.id === currentConvId
-            ? { ...conv, charts: updatedCharts }
-            : conv
-        )
-      );
+        for (const query of response.queries) {
+          // Add AI message with SQL query
+          const dataInfo = query.data && query.data.length > 0 
+            ? `\n\nData: ${query.data.length} rows returned`
+            : query.error 
+              ? `\n\nError: ${query.error}`
+              : '\n\nNo data returned';
+
+          aiMessages.push({
+            id: `msg-${Date.now()}-${query.name}`,
+            role: 'ai',
+            content: `I've generated a SQL query for your request:\n\n\`\`\`sql\n${query.sql}\n\`\`\`\n\nChart Type: ${query.suggested_chart.type}\nTitle: ${query.suggested_chart.title}${dataInfo}`,
+            timestamp: new Date(),
+          });
+
+          // Use Plotly data from backend
+          if (query.plotly_data) {
+            updatedCharts.push({
+              id: `chart-${Date.now()}-${query.name}`,
+              title: query.suggested_chart.title,
+              plotlyData: query.plotly_data,
+              insight: query.error ? `Error: ${query.error}` : `${query.sql}`,
+            });
+          } else if (query.error) {
+            // Query had an error
+            hasQueryError = true;
+            queryErrorMsg = query.error;
+            aiMessages.push({
+              id: `msg-${Date.now()}-error-${query.name}`,
+              role: 'ai',
+              content: `Error executing query: ${query.error}`,
+              timestamp: new Date(),
+            });
+          }
+        }
+
+        // Show error popup if any query failed, otherwise clear error
+        if (hasQueryError) {
+          setErrorMessage(`Error executing query: ${queryErrorMsg}`);
+        } else {
+          setErrorMessage(null); // Clear error on success
+        }
+
+        // Update conversations with messages and charts
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === currentConvId
+              ? { 
+                  ...conv, 
+                  messages: [...conv.messages, ...aiMessages],
+                  charts: updatedCharts
+                }
+              : conv
+          )
+        );
+
+        setCharts(updatedCharts);
+      } else {
+        // Error response
+        setErrorMessage(`Sorry, I encountered an error: ${response.error || 'Unknown error'}`);
+      }
     } catch (error) {
       console.error('Error fetching chart data:', error);
-      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}. Please make sure the backend server is running.`);
+      setErrorMessage(`Sorry, I couldn't process your request. Please try again. Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -234,6 +291,19 @@ export default function Home() {
     setShowSuggestions(false);
     handleSearch(suggestion);
   };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.search-container')) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const downloadChart = (chart: ChartData, chartId: string) => {
     const plotlyDiv = document.getElementById(chartId);
@@ -260,11 +330,17 @@ export default function Home() {
     const override = chartTypes[chart.id];
     if (override) return override;
 
-    const base = Array.isArray(chart.plotlyData)
-      ? 'multi-series'
-      : (chart.plotlyData as PlotlyData).type || 'chart';
+    if (Array.isArray(chart.plotlyData)) {
+      return 'multi-series';
+    }
 
-    return base;
+    const plotlyData = chart.plotlyData as PlotlyData;
+    // If it's scatter with lines mode, display as 'line'
+    if (plotlyData.type === 'scatter' && plotlyData.mode === 'lines') {
+      return 'line';
+    }
+    // Otherwise use the type directly
+    return plotlyData.type || 'chart';
   };
 
   const getTransformedData = (chart: ChartData): any[] => {
@@ -326,7 +402,7 @@ export default function Home() {
         <div className="p-4 border-b border-slate-200">
           <button
             onClick={handleNewConversation}
-            className="w-full flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all font-medium"
+            className="w-full flex items-center gap-2 px-4 py-2.5 bg-blue-800 hover:bg-blue-700 text-white rounded-lg transition-all font-medium"
           >
             <Plus className="w-4 h-4" />
             New Search
@@ -386,66 +462,85 @@ export default function Home() {
       <div className="flex-1 flex flex-col">
         {/* iOS-style Siri Search Header */}
         <div className="p-8 pb-6 bg-gradient-to-b from-slate-50 to-white border-b border-slate-200">
-          <div className="max-w-2xl mx-auto">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 transition-all" />
-              <input
-                type="text"
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                onFocus={() => setShowSuggestions(true)}
-                placeholder="Ask about your data"
-                disabled={isLoading}
-                autoFocus
-                className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-50 shadow-lg hover:shadow-xl focus:shadow-2xl backdrop-blur-sm"
-                style={{
-                  background: showSuggestions 
-                    ? 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(239,246,255,0.95) 100%)'
-                    : 'white'
-                }}
-              />
-
-              {/* Dynamic Suggestions Dropdown */}
-              {showSuggestions && !isLoading && filteredSuggestions.length > 0 && (
-                <div 
-                  className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-2xl shadow-2xl overflow-hidden z-10 animate-in fade-in slide-in-from-top-2 duration-200"
+          {/* Flex Container for Search Bar and Button */}
+          <div className="flex items-center justify-center max-w-4xl mx-auto gap-4"> 
+            <div className="flex-1 search-container"> 
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 transition-all" />
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={e => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  onFocus={() => setShowSuggestions(true)}
+                  onClick={() => setShowSuggestions(!showSuggestions)}
+                  placeholder="Ask about your data"
+                  disabled={isLoading}
+                  autoFocus
+                  className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-50 shadow-lg hover:shadow-xl focus:shadow-2xl backdrop-blur-sm cursor-pointer"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%)',
+                    background: showSuggestions 
+                      ? 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(239,246,255,0.95) 100%)'
+                      : 'white'
                   }}
-                >
-                  <div className="p-2 border-b border-slate-100/50 bg-gradient-to-r from-slate-50/50 to-blue-50/30">
-                    <p className="text-xs font-semibold text-slate-500 px-3 py-1">SUGGESTIONS</p>
+                />
+
+                {/* Dynamic Suggestions Dropdown */}
+                {showSuggestions && !isLoading && filteredSuggestions.length > 0 && (
+                  <div 
+                    className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-2xl shadow-2xl overflow-hidden z-10 animate-in fade-in slide-in-from-top-2 duration-200"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%)',
+                    }}
+                  >
+                    <div className="p-2 border-b border-slate-100/50 bg-gradient-to-r from-slate-50/50 to-blue-50/30">
+                      <p className="text-xs font-semibold text-slate-500 px-3 py-1">SUGGESTIONS</p>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {filteredSuggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          className="w-full text-left px-4 py-3 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 flex items-center gap-3 border-b border-slate-50/50 last:border-b-0 group"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                            <Search className="w-4 h-4 text-blue-800 flex-shrink-0" />
+                          </div>
+                          <span className="text-sm text-slate-700 group-hover:text-blue-900 font-medium">{suggestion}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {filteredSuggestions.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className="w-full text-left px-4 py-3 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 flex items-center gap-3 border-b border-slate-50/50 last:border-b-0 group"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                          <Search className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                        </div>
-                        <span className="text-sm text-slate-700 group-hover:text-blue-900 font-medium">{suggestion}</span>
-                      </button>
-                    ))}
+                )}
+              </div>
+              
+              {/* Loading State (for the search bar area) */}
+              {isLoading && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-blue-800 rounded-full animate-pulse"></div>
+                    <p className="text-sm text-blue-900">Searching your data...</p>
                   </div>
                 </div>
               )}
             </div>
             
-
-            {/* Loading State */}
-            {isLoading && (
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-                  <p className="text-sm text-blue-900">Searching your data...</p>
-                </div>
-              </div>
-            )}
+            {/* DASHBOARD BUTTON */}
+            <button
+              onClick={() => navigate('/dashboard-builder')}
+              className="flex items-center gap-2 px-4 py-4 bg-blue-800 hover:bg-blue-700 text-white rounded-2xl transition-all font-medium shadow-lg hover:shadow-xl whitespace-nowrap text-base"
+            >
+          
+              <span>Dashboard Designer</span>
+            </button>
           </div>
+
+          {/* Error State */}
+          {errorMessage && !isLoading && (
+            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl max-w-4xl mx-auto">
+              <p className="text-sm text-red-900">{errorMessage}</p>
+            </div>
+          )}
         </div>
 
         {/* Visualizations */}
@@ -539,7 +634,7 @@ export default function Home() {
                                   }}
                                   config={{
                                     responsive: true,
-                                    displayModeBar: true,
+                                    displayModeBar: false,
                                     displaylogo: false,
                                   }}
                                   style={{ width: '100%', height: '300px' }}
@@ -582,7 +677,7 @@ export default function Home() {
                                 <span
                                   className={`inline-flex items-center justify-center w-5 h-5 text-[10px] font-semibold rounded-full border ${
                                     isSelected
-                                      ? 'bg-blue-600 text-white border-blue-600'
+                                      ? 'bg-blue-800 text-white border-blue-800'
                                       : 'bg-white text-slate-400 border-slate-300'
                                   }`}
                                 >
@@ -601,14 +696,22 @@ export default function Home() {
                             className="flex items-center gap-2"
                             onClick={e => e.stopPropagation()}
                           >
+                        <button
+                              onClick={() => navigate(`/report/${chart.id}`)}
+                              className="flex items-center gap-1 px-4 py-1.5 bg-blue-800 hover:bg-blue-700 text-white rounded-2xl transition-all text-xs font-semibold shadow-lg hover:shadow-xl whitespace-nowrap text-base"
+                            >
+                              <TrendingUp className="w-4 h-4" />
+                              View Key Insights
+                            </button>
                             {/* Chart type switcher */}
                             <div className="inline-flex items-center bg-slate-50 rounded-full border border-slate-200 overflow-hidden">
+                              
                               <button
                                 type="button"
                                 onClick={() => setChartTypeForChart(chart.id, 'bar')}
                                 className={`p-1.5 border-r border-slate-200 ${
                                   chartTypes[chart.id] === 'bar'
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-blue-800 text-white'
                                     : 'text-slate-600 hover:bg-slate-100'
                                 }`}
                                 title="Bar chart"
@@ -620,7 +723,7 @@ export default function Home() {
                                 onClick={() => setChartTypeForChart(chart.id, 'line')}
                                 className={`p-1.5 border-r border-slate-200 ${
                                   chartTypes[chart.id] === 'line'
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-blue-800 text-white'
                                     : 'text-slate-600 hover:bg-slate-100'
                                 }`}
                                 title="Line chart"
@@ -632,7 +735,7 @@ export default function Home() {
                                 onClick={() => setChartTypeForChart(chart.id, 'scatter')}
                                 className={`p-1.5 ${
                                   chartTypes[chart.id] === 'scatter'
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-blue-800 text-white'
                                     : 'text-slate-600 hover:bg-slate-100'
                                 }`}
                                 title="Scatter plot"
@@ -666,7 +769,7 @@ export default function Home() {
                             }}
                             config={{
                               responsive: true,
-                              displayModeBar: true,
+                              displayModeBar: false,
                               displaylogo: false,
                             }}
                             style={{ width: '100%', height: '400px' }}
@@ -674,16 +777,32 @@ export default function Home() {
                         </div>
 
                         {chart.insight && (
-                          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 mt-4">
-                            <div className="flex items-start gap-3">
-                              <TrendingUp className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <div className="text-xs font-semibold text-slate-700 mb-1">
-                                  Key Insight
+                          <div className="flex items-start gap-4 mt-4">
+                            <div className="flex-1 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="text-xs font-semibold text-slate-700">
+                                  SQL Query
                                 </div>
-                                <p className="text-sm text-slate-600">
-                                  {chart.insight}
-                                </p>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(chart.insight || '');
+                                    setCopiedChartId(chart.id);
+                                    setTimeout(() => setCopiedChartId(null), 2000);
+                                  }}
+                                  className="p-1.5 hover:bg-slate-200 rounded transition-all"
+                                  title="Copy SQL query"
+                                >
+                                  {copiedChartId === chart.id ? (
+                                    <Check className="w-4 h-4 text-green-600" />
+                                  ) : (
+                                    <Copy className="w-4 h-4 text-slate-600" />
+                                  )}
+                                </button>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-slate-200">
+                                <pre className="text-xs text-slate-800 font-mono overflow-x-auto whitespace-pre-wrap break-words">
+                                  <code>{chart.insight}</code>
+                                </pre>
                               </div>
                             </div>
                           </div>

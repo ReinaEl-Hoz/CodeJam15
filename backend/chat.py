@@ -3,7 +3,7 @@ import re
 import json
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from typing import List, Union
+from typing import List, Union, Optional
 
 from google import genai  # from google-genai package
 from db_utils import get_database_schema_with_descriptions
@@ -20,9 +20,9 @@ client = genai.Client(api_key=api_key)
 class SuggestedChart(BaseModel):
     type: str
     x: str
-    y: str  # Can be single column or multiple columns for multi-series charts
+    y: str  # Must be a single string column name (no arrays/multi-series)
     title: str
-
+    
 class Query(BaseModel):
     name: str
     sql: str
@@ -30,6 +30,7 @@ class Query(BaseModel):
 
 class QueryResponse(BaseModel):
     queries: List[Query]
+    error: Optional[str] = None
 
 
 def clean_json_block(text: str) -> str:
@@ -117,7 +118,7 @@ Return ONLY a JSON object with this EXACT structure:
       "name": "descriptive_name_snake_case",
       "sql": "SELECT ... FROM ... WHERE ... ;",
       "suggested_chart": {{
-        "type": "line|bar|pie|histogram|scatter",
+        "type": "line" OR "bar" ONLY,
         "x": "column_name_for_x_axis",
         "y": "column_name_for_y_axis",
         "title": "Descriptive Chart Title"
@@ -126,10 +127,20 @@ Return ONLY a JSON object with this EXACT structure:
   ]
 }}
 
+OR if the request is out of scope or cannot be visualized:
+
+{{
+  "error": "The request is out of scope. Please ask questions about the database tables: customers, products, orders, departments, payroll, expenses, or daily_revenue. \nOnly simple line or bar charts are supported."
+}}
+
 Rules:
 - Only use tables and columns from the schema
 - Generate valid SQL with proper syntax
-- Choose appropriate chart type (line for time series, bar for categories, pie for proportions)
+- Chart type MUST be "line" (for time series) or "bar" (for categories) ONLY
+- Use DuckDB syntax for the SQL query
+- When comparing time data, make sure the types are compatible
+- x,y field MUST be a single string column name, NEVER an array
+- If user asks about unrelated topics, return error JSON
 - Include semicolon at end of SQL
 - Use descriptive snake_case names
 - No markdown, no explanation, just raw JSON
@@ -145,6 +156,12 @@ CRITICAL: Return ONLY the JSON object, nothing else.
         raw = clean_json_block(response.text.strip())
         
         try:
+            parsed = json.loads(raw)
+            
+            # Check if it's an error response
+            if 'error' in parsed and parsed.get('error'):
+                return QueryResponse(queries=[], error=parsed['error'])
+            
             return QueryResponse.model_validate_json(raw)
         except Exception as e:
             print(f"Failed to parse response: {raw}")
