@@ -50,7 +50,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
           </button>
           
           <p className="text-sm text-slate-500 mt-4 animate-fade-in-delay-3">
-            Move mouse to interact • Click to create a shockwave
+            Move mouse to interact
           </p>
         </div>
       </div>
