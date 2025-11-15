@@ -141,4 +141,4 @@ def get_key_insights(query: str) -> JSONResponse:
                     ]
                 })
     
-    return JSONResponse(content=insights)
+    return insights

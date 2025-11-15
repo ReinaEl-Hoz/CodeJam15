@@ -1,30 +1,25 @@
-import duckdb
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from key_insights import get_key_insights
-from backend.chart_persistence_utils import get_charts, save_chart_query
+# main.py
+from flask import Flask
+from flask_cors import CORS
+from routes import api  # Replace 'your_routes_file' with actual filename
 
-app = FastAPI()
-con = duckdb.connect("codejam_15.db")
+app = Flask(__name__)
 
-# Enable CORS for frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React/Vite ports
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS setup for frontend
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:3000", "http://localhost:5173"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
-@app.get("/key-insights", response_class=JSONResponse)
-def profile_report(query: str):
-    return get_key_insights(query)
+# Register the blueprint
+app.register_blueprint(api, url_prefix='/api')
 
-@app.get("/charts", response_class=list[JSONResponse])
-def get_charts():
-    return get_charts 
+@app.route('/')
+def index():
+    return {'message': 'API is running'}
 
-@app.post("/save-chart")
-def save_chart(query: str):
-    save_chart_query(query)
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5001)
