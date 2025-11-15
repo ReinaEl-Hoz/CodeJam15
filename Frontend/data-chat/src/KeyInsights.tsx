@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ScatterChart, Scatter } from 'recharts';
-import './KeyInsights.css';
 import Plot from "react-plotly.js";
+import './KeyInsights.css';
 
+// ==================== Types ====================
 interface Stats {
     mean: number;
     median: number;
@@ -78,6 +79,9 @@ interface KeyInsightsProps {
     data?: KeyInsightsData;
 }
 
+type TabType = 'overview' | 'correlations' | 'interactions';
+
+// ==================== Sample Data for Testing ====================
 const sampleData: KeyInsightsData = {
     overview: {
         row_count: 1000,
@@ -166,292 +170,365 @@ const sampleData: KeyInsightsData = {
     ]
 };
 
-const KeyInsights: React.FC<KeyInsightsProps> = ({ data = sampleData }) => {
-    const [selectedColumn, setSelectedColumn] = useState<Column | null>(null);
-    const [activeTab, setActiveTab] = useState<'overview' | 'correlations' | 'interactions'>('overview');
+// ==================== Utility Functions ====================
+const formatNumber = (num: number | null | undefined): string => {
+    if (num === null || num === undefined) return 'N/A';
+    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`;
+    if (num >= 1_000) return `${(num / 1_000).toFixed(2)}K`;
+    return num.toFixed(2);
+};
 
-    const formatNumber = (num: number | null | undefined): string => {
-        if (num === null || num === undefined) return 'N/A';
-        if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
-        if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
-        return num.toFixed(2);
-    };
+const getTypeColor = (type: string): string => {
+    if (type.includes('int') || type.includes('float')) return '#3b82f6';
+    if (type.includes('object') || type.includes('str')) return '#8b5cf6';
+    if (type.includes('datetime')) return '#10b981';
+    return '#6b7280';
+};
 
-    const getTypeColor = (type: string): string => {
-        if (type.includes('int') || type.includes('float')) return '#3b82f6';
-        if (type.includes('object') || type.includes('str')) return '#8b5cf6';
-        if (type.includes('datetime')) return '#10b981';
-        return '#6b7280';
-    };
+const getCorrelationColor = (value: number): string => {
+    const absValue = Math.abs(value);
+    if (absValue < 0.3) return '#f0f0f0';
+    if (absValue < 0.5) return value > 0 ? '#bfdbfe' : '#fecaca';
+    if (absValue < 0.7) return value > 0 ? '#60a5fa' : '#f87171';
+    return value > 0 ? '#2563eb' : '#dc2626';
+};
 
-    const getCellColor = (value: number): string => {
-        const absValue = Math.abs(value);
-        if (absValue < 0.3) return '#f0f0f0';
-        if (absValue < 0.5) return value > 0 ? '#bfdbfe' : '#fecaca';
-        if (absValue < 0.7) return value > 0 ? '#60a5fa' : '#f87171';
-        return value > 0 ? '#2563eb' : '#dc2626';
-    };
+const isNumericColumn = (column: Column): boolean => {
+    return Boolean(column.stats && !column.top_values);
+};
 
-    const renderColumnCard = (column: Column) => {
-        const isNumeric = column.stats && !column.top_values;
-        const isCategorical = column.top_values;
+const isCategoricalColumn = (column: Column): boolean => {
+    return Boolean(column.top_values);
+};
 
-        return (
-            <div
-                key={column.name}
-                className="column-card"
-                onClick={() => setSelectedColumn(column)}
-            >
-                <div className="column-header">
-                    <div className="column-name">{column.name}</div>
-                    <div className="column-type" style={{ color: getTypeColor(column.type) }}>
-                        {column.type}
-                    </div>
-                </div>
+// ==================== Sub-Components ====================
+const OverviewCard: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
+    <div className="overview-card">
+        <div className="overview-label">{label}</div>
+        <div className="overview-value">{value}</div>
+    </div>
+);
 
-                <div className="column-stats">
-                    <div className="stat-item">
-                        <span className="stat-label">Unique</span>
-                        <span className="stat-value">{column.unique}</span>
-                    </div>
-                    <div className="stat-item">
-                        <span className="stat-label">Missing</span>
-                        <span className="stat-value">{column.missing} ({column.missing_percent.toFixed(1)}%)</span>
-                    </div>
-                </div>
+const CorrelationItem: React.FC<{ correlation: Correlation }> = ({ correlation }) => (
+    <div className="correlation-item">
+        <span className="corr-columns">
+            {correlation.col1} ↔ {correlation.col2}
+        </span>
+        <span
+            className="corr-value"
+            style={{ color: correlation.correlation > 0 ? '#10b981' : '#ef4444' }}
+        >
+            {correlation.correlation.toFixed(2)}
+        </span>
+    </div>
+);
 
-                {isNumeric && column.stats && (
-                    <div className="quick-stats">
-                        <div className="mini-stat">
-                            <span className="mini-label">Mean</span>
-                            <span className="mini-value">{formatNumber(column.stats.mean)}</span>
-                        </div>
-                        <div className="mini-stat">
-                            <span className="mini-label">Median</span>
-                            <span className="mini-value">{formatNumber(column.stats.median)}</span>
-                        </div>
-                        <div className="mini-stat">
-                            <span className="mini-label">Std</span>
-                            <span className="mini-value">{formatNumber(column.stats.std)}</span>
-                        </div>
-                    </div>
-                )}
+const StatBox: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+    <div className="stat-box">
+        <div className="stat-box-label">{label}</div>
+        <div className="stat-box-value">{value}</div>
+    </div>
+);
 
-                {isCategorical && column.top_values && column.top_values.length > 0 && (
-                    <div className="top-category">
-                        <span className="category-label">Top: </span>
-                        <span className="category-value">{column.top_values[0].value}</span>
-                        <span className="category-count">({column.top_values[0].count})</span>
-                    </div>
-                )}
-            </div>
-        );
-    };
+const SamplesSection: React.FC<{ title: string; samples: string[] }> = ({ title, samples }) => (
+    <div className="samples-section">
+        <h3>{title}</h3>
+        <div className="samples-list">
+            {samples.map((val, i) => (
+                <div key={i} className="sample-item">{val}</div>
+            ))}
+        </div>
+    </div>
+);
 
-    const renderCorrelationHeatmap = () => {
-        if (!data.correlation_matrix) return null;
+// ==================== Column Card Component ====================
+const ColumnCard: React.FC<{
+    column: Column;
+    onClick: (column: Column) => void;
+}> = ({ column, onClick }) => {
+    const isNumeric = isNumericColumn(column);
+    const isCategorical = isCategoricalColumn(column);
 
-        return (
-            <div className="heatmap-container">
-                <h2>Correlation Heatmap</h2>
-                <div className="heatmap-wrapper">
-                    <Plot
-                        data={[
-                            {
-                                z: data.correlation_matrix.data,
-                                x: data.correlation_matrix.columns,
-                                y: data.correlation_matrix.columns,
-                                type: 'heatmap',
-                                colorscale: 'RdBu',  // common for correlation matrices
-                                zmin: -1,
-                                zmax: 1,
-                                colorbar: { title: 'Correlation' },
-                            },
-                        ]}
-                        layout={{
-                            title: 'Correlation Heatmap',
-                            xaxis: { side: 'top' }, // move x-axis labels to top (common for correlation)
-                            yaxis: { autorange: 'reversed' }, // flip y-axis for better alignment
-                            autosize: true,
-                        }}
-                        style={{ width: '100%', height: '100%' }}
-                        config={{ responsive: true }}
-                    />
+    return (
+        <div className="column-card" onClick={() => onClick(column)}>
+            <div className="column-header">
+                <div className="column-name">{column.name}</div>
+                <div className="column-type" style={{ color: getTypeColor(column.type) }}>
+                    {column.type}
                 </div>
             </div>
-        );
-    };
 
-    const renderInteractions = () => {
-        if (!data.interactions || data.interactions.length === 0) return null;
+            <div className="column-stats">
+                <div className="stat-item">
+                    <span className="stat-label">Unique</span>
+                    <span className="stat-value">{column.unique}</span>
+                </div>
+                <div className="stat-item">
+                    <span className="stat-label">Missing</span>
+                    <span className="stat-value">
+                        {column.missing} ({column.missing_percent.toFixed(1)}%)
+                    </span>
+                </div>
+            </div>
 
-        return (
-            <div className="interactions-container">
-                <h2>Variable Interactions</h2>
-                <div className="interactions-grid">
-                    {data.interactions.map((interaction, idx) => (
-                        <div key={idx} className="interaction-card">
-                            <h3>
-                                {interaction.col1} vs {interaction.col2}
-                                <span className="correlation-badge" style={{
+            {isNumeric && column.stats && (
+                <div className="quick-stats">
+                    <div className="mini-stat">
+                        <span className="mini-label">Mean</span>
+                        <span className="mini-value">{formatNumber(column.stats.mean)}</span>
+                    </div>
+                    <div className="mini-stat">
+                        <span className="mini-label">Median</span>
+                        <span className="mini-value">{formatNumber(column.stats.median)}</span>
+                    </div>
+                    <div className="mini-stat">
+                        <span className="mini-label">Std</span>
+                        <span className="mini-value">{formatNumber(column.stats.std)}</span>
+                    </div>
+                </div>
+            )}
+
+            {isCategorical && column.top_values && column.top_values.length > 0 && (
+                <div className="top-category">
+                    <span className="category-label">Top: </span>
+                    <span className="category-value">{column.top_values[0].value}</span>
+                    <span className="category-count">({column.top_values[0].count})</span>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ==================== Histogram Component ====================
+const HistogramChart: React.FC<{ histogram: Histogram }> = ({ histogram }) => {
+    const chartData = histogram.counts.map((count, i) => ({
+        bin: histogram.bins[i].toFixed(1),
+        count
+    }));
+
+    return (
+        <div className="chart-container">
+            <h3>Distribution</h3>
+            <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="bin" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#1a1a1a" radius={[4, 4, 0, 0]} />
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+};
+
+// ==================== Top Values Chart Component ====================
+const TopValuesChart: React.FC<{ topValues: TopValue[] }> = ({ topValues }) => (
+    <div className="chart-container">
+        <h3>Top Values</h3>
+        <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={topValues} layout="horizontal">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis type="number" tick={{ fontSize: 12 }} />
+                <YAxis dataKey="value" type="category" width={100} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="count" fill="#1a1a1a" radius={[0, 4, 4, 0]} />
+            </BarChart>
+        </ResponsiveContainer>
+    </div>
+);
+
+// ==================== Detail Modal Component ====================
+const ColumnDetailModal: React.FC<{
+    column: Column | null;
+    onClose: () => void;
+}> = ({ column, onClose }) => {
+    if (!column) return null;
+
+    const isNumeric = isNumericColumn(column);
+    const isCategorical = isCategoricalColumn(column);
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h2>{column.name}</h2>
+                    <button className="close-btn" onClick={onClose}>×</button>
+                </div>
+
+                <div className="modal-body">
+                    {isNumeric && column.stats && (
+                        <>
+                            <div className="stats-grid">
+                                <StatBox label="Mean" value={formatNumber(column.stats.mean)} />
+                                <StatBox label="Median" value={formatNumber(column.stats.median)} />
+                                <StatBox label="Std Dev" value={formatNumber(column.stats.std)} />
+                                <StatBox label="Min" value={formatNumber(column.stats.min)} />
+                                <StatBox label="Q25" value={formatNumber(column.stats.q25)} />
+                                <StatBox label="Q75" value={formatNumber(column.stats.q75)} />
+                                <StatBox label="Max" value={formatNumber(column.stats.max)} />
+                            </div>
+
+                            {column.min_samples && column.min_samples.length > 0 && (
+                                <SamplesSection title="Minimum Values (Sample)" samples={column.min_samples} />
+                            )}
+
+                            {column.max_samples && column.max_samples.length > 0 && (
+                                <SamplesSection title="Maximum Values (Sample)" samples={column.max_samples} />
+                            )}
+
+                            {column.histogram && <HistogramChart histogram={column.histogram} />}
+                        </>
+                    )}
+
+                    {isCategorical && column.top_values && (
+                        <>
+                            {column.min_samples && column.min_samples.length > 0 && (
+                                <SamplesSection title="Sample Values (First 5)" samples={column.min_samples} />
+                            )}
+                            <TopValuesChart topValues={column.top_values} />
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ==================== Correlation Heatmap Component ====================
+const CorrelationHeatmap: React.FC<{ correlationMatrix: CorrelationMatrix }> = ({ correlationMatrix }) => (
+    <div className="heatmap-container">
+        <h2>Correlation Heatmap</h2>
+        <div className="heatmap-wrapper">
+            <Plot
+                data={[
+                    {
+                        z: correlationMatrix.data,
+                        x: correlationMatrix.columns,
+                        y: correlationMatrix.columns,
+                        type: 'heatmap',
+                        colorscale: 'YlGnBu',
+                        zmin: -1,
+                        zmax: 1,
+                        colorbar: { title: 'Correlation' },
+                    },
+                ]}
+                layout={{
+                    title: 'Correlation Heatmap',
+                    xaxis: { side: 'top' }, // move x-axis labels to top (common for correlation)
+                    yaxis: { autorange: 'reversed' }, // flip y-axis for better alignment
+                    autosize: true,
+                }}
+                style={{ width: '100%', height: '100%' }}
+                config={{ responsive: true }}
+            />
+        </div>
+    </div>
+);
+
+// ==================== Interactions Component ====================
+const InteractionsView: React.FC<{ interactions: Interaction[] }> = ({ interactions }) => {
+    if (!interactions || interactions.length === 0) return null;
+
+    return (
+        <div className="interactions-container">
+            <h2>Variable Interactions</h2>
+            <div className="interactions-grid">
+                {interactions.map((interaction, idx) => (
+                    <div key={idx} className="interaction-card">
+                        <h3>
+                            {interaction.col1} vs {interaction.col2}
+                            <span
+                                className="correlation-badge"
+                                style={{
                                     backgroundColor: interaction.correlation > 0 ? '#dcfce7' : '#fee2e2',
                                     color: interaction.correlation > 0 ? '#166534' : '#991b1b'
-                                }}>
-                                    r = {interaction.correlation.toFixed(2)}
-                                </span>
-                            </h3>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <ScatterChart>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                    <XAxis
-                                        dataKey="x"
-                                        name={interaction.col1}
-                                        tick={{ fontSize: 12 }}
-                                        label={{ value: interaction.col1, position: 'insideBottom', offset: -5 }}
-                                    />
-                                    <YAxis
-                                        dataKey="y"
-                                        name={interaction.col2}
-                                        tick={{ fontSize: 12 }}
-                                        label={{ value: interaction.col2, angle: -90, position: 'insideLeft' }}
-                                    />
-                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                                    <Scatter
-                                        data={interaction.data}
-                                        fill="#1a1a1a"
-                                        fillOpacity={0.6}
-                                    />
-                                </ScatterChart>
-                            </ResponsiveContainer>
-                        </div>
+                                }}
+                            >
+                                r = {interaction.correlation.toFixed(2)}
+                            </span>
+                        </h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <ScatterChart>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                <XAxis
+                                    dataKey="x"
+                                    name={interaction.col1}
+                                    tick={{ fontSize: 12 }}
+                                    label={{ value: interaction.col1, position: 'insideBottom', offset: -5 }}
+                                />
+                                <YAxis
+                                    dataKey="y"
+                                    name={interaction.col2}
+                                    tick={{ fontSize: 12 }}
+                                    label={{ value: interaction.col2, angle: -90, position: 'insideLeft' }}
+                                />
+                                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                                <Scatter
+                                    data={interaction.data}
+                                    fill="#1a1a1a"
+                                    fillOpacity={0.6}
+                                />
+                            </ScatterChart>
+                        </ResponsiveContainer>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// ==================== Overview Tab Component ====================
+const OverviewTab: React.FC<{
+    data: KeyInsightsData;
+    onColumnClick: (column: Column) => void;
+}> = ({ data, onColumnClick }) => (
+    <>
+        <div className="overview-cards">
+            <OverviewCard label="Rows" value={formatNumber(data.overview.row_count)} />
+            <OverviewCard label="Columns" value={data.overview.column_count} />
+            <OverviewCard label="Memory" value={`${data.overview.memory_usage.toFixed(2)} MB`} />
+            <OverviewCard label="Duplicates" value={data.overview.duplicate_rows} />
+        </div>
+
+        {data.correlations && data.correlations.length > 0 && (
+            <div className="correlations-section">
+                <h2>Strong Correlations</h2>
+                <div className="correlation-list">
+                    {data.correlations.map((corr, i) => (
+                        <CorrelationItem key={i} correlation={corr} />
                     ))}
                 </div>
             </div>
-        );
-    };
+        )}
 
-    const renderDetailModal = () => {
-        if (!selectedColumn) return null;
+        <div className="columns-section">
+            <h2>Column Details</h2>
+            <div className="columns-grid">
+                {data.columns.map((column) => (
+                    <ColumnCard key={column.name} column={column} onClick={onColumnClick} />
+                ))}
+            </div>
+        </div>
+    </>
+);
 
-        const isNumeric = selectedColumn.stats && !selectedColumn.top_values;
-        const isCategorical = selectedColumn.top_values;
+// ==================== Main Component ====================
+const KeyInsights: React.FC<KeyInsightsProps> = ({ data = sampleData }) => {
+    const [selectedColumn, setSelectedColumn] = useState<Column | null>(null);
+    const [activeTab, setActiveTab] = useState<TabType>('overview');
 
+    // Defensive check
+    if (!data) {
         return (
-            <div className="modal-overlay" onClick={() => setSelectedColumn(null)}>
-                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                    <div className="modal-header">
-                        <h2>{selectedColumn.name}</h2>
-                        <button className="close-btn" onClick={() => setSelectedColumn(null)}>×</button>
-                    </div>
-
-                    <div className="modal-body">
-                        {isNumeric && selectedColumn.stats && (
-                            <>
-                                <div className="stats-grid">
-                                    <div className="stat-box">
-                                        <div className="stat-box-label">Mean</div>
-                                        <div className="stat-box-value">{formatNumber(selectedColumn.stats.mean)}</div>
-                                    </div>
-                                    <div className="stat-box">
-                                        <div className="stat-box-label">Median</div>
-                                        <div className="stat-box-value">{formatNumber(selectedColumn.stats.median)}</div>
-                                    </div>
-                                    <div className="stat-box">
-                                        <div className="stat-box-label">Std Dev</div>
-                                        <div className="stat-box-value">{formatNumber(selectedColumn.stats.std)}</div>
-                                    </div>
-                                    <div className="stat-box">
-                                        <div className="stat-box-label">Min</div>
-                                        <div className="stat-box-value">{formatNumber(selectedColumn.stats.min)}</div>
-                                    </div>
-                                    <div className="stat-box">
-                                        <div className="stat-box-label">Q25</div>
-                                        <div className="stat-box-value">{formatNumber(selectedColumn.stats.q25)}</div>
-                                    </div>
-                                    <div className="stat-box">
-                                        <div className="stat-box-label">Q75</div>
-                                        <div className="stat-box-value">{formatNumber(selectedColumn.stats.q75)}</div>
-                                    </div>
-                                    <div className="stat-box">
-                                        <div className="stat-box-label">Max</div>
-                                        <div className="stat-box-value">{formatNumber(selectedColumn.stats.max)}</div>
-                                    </div>
-                                </div>
-
-                                {selectedColumn.min_samples && selectedColumn.min_samples.length > 0 && (
-                                    <div className="samples-section">
-                                        <h3>Minimum Values (Sample)</h3>
-                                        <div className="samples-list">
-                                            {selectedColumn.min_samples.map((val, i) => (
-                                                <div key={i} className="sample-item">{val}</div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {selectedColumn.max_samples && selectedColumn.max_samples.length > 0 && (
-                                    <div className="samples-section">
-                                        <h3>Maximum Values (Sample)</h3>
-                                        <div className="samples-list">
-                                            {selectedColumn.max_samples.map((val, i) => (
-                                                <div key={i} className="sample-item">{val}</div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {selectedColumn.histogram && (
-                                    <div className="chart-container">
-                                        <h3>Distribution</h3>
-                                        <ResponsiveContainer width="100%" height={300}>
-                                            <BarChart data={selectedColumn.histogram.counts.map((count, i) => ({
-                                                bin: selectedColumn.histogram!.bins[i].toFixed(1),
-                                                count
-                                            }))}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                                <XAxis dataKey="bin" tick={{ fontSize: 12 }} />
-                                                <YAxis tick={{ fontSize: 12 }} />
-                                                <Tooltip />
-                                                <Bar dataKey="count" fill="#1a1a1a" radius={[4, 4, 0, 0]} />
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                )}
-                            </>
-                        )}
-
-                        {isCategorical && selectedColumn.top_values && (
-                            <>
-                                {selectedColumn.min_samples && selectedColumn.min_samples.length > 0 && (
-                                    <div className="samples-section">
-                                        <h3>Sample Values (First 5)</h3>
-                                        <div className="samples-list">
-                                            {selectedColumn.min_samples.map((val, i) => (
-                                                <div key={i} className="sample-item">{val}</div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="chart-container">
-                                    <h3>Top Values</h3>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                        <BarChart data={selectedColumn.top_values} layout="horizontal">
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                            <XAxis type="number" tick={{ fontSize: 12 }} />
-                                            <YAxis dataKey="value" type="category" width={100} tick={{ fontSize: 12 }} />
-                                            <Tooltip />
-                                            <Bar dataKey="count" fill="#1a1a1a" radius={[0, 4, 4, 0]} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </>
-                        )}
-                    </div>
+            <div className="insights-container">
+                <div className="empty-state">
+                    <h3>No Data Available</h3>
+                    <p>Please provide data to visualize insights.</p>
                 </div>
             </div>
         );
-    };
+    }
 
     return (
         <div className="insights-container">
@@ -480,57 +557,18 @@ const KeyInsights: React.FC<KeyInsightsProps> = ({ data = sampleData }) => {
             </div>
 
             {activeTab === 'overview' && (
-                <>
-                    <div className="overview-cards">
-                        <div className="overview-card">
-                            <div className="overview-label">Rows</div>
-                            <div className="overview-value">{formatNumber(data.overview.row_count)}</div>
-                        </div>
-                        <div className="overview-card">
-                            <div className="overview-label">Columns</div>
-                            <div className="overview-value">{data.overview.column_count}</div>
-                        </div>
-                        <div className="overview-card">
-                            <div className="overview-label">Memory</div>
-                            <div className="overview-value">{data.overview.memory_usage.toFixed(2)} MB</div>
-                        </div>
-                        <div className="overview-card">
-                            <div className="overview-label">Duplicates</div>
-                            <div className="overview-value">{data.overview.duplicate_rows}</div>
-                        </div>
-                    </div>
-
-                    {data.correlations && data.correlations.length > 0 && (
-                        <div className="correlations-section">
-                            <h2>Strong Correlations</h2>
-                            <div className="correlation-list">
-                                {data.correlations.map((corr, i) => (
-                                    <div key={i} className="correlation-item">
-                                        <span className="corr-columns">{corr.col1} ↔ {corr.col2}</span>
-                                        <span className="corr-value" style={{
-                                            color: corr.correlation > 0 ? '#10b981' : '#ef4444'
-                                        }}>
-                                            {corr.correlation.toFixed(2)}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="columns-section">
-                        <h2>Column Details</h2>
-                        <div className="columns-grid">
-                            {data.columns.map(renderColumnCard)}
-                        </div>
-                    </div>
-                </>
+                <OverviewTab data={data} onColumnClick={setSelectedColumn} />
             )}
 
-            {activeTab === 'correlations' && renderCorrelationHeatmap()}
-            {activeTab === 'interactions' && renderInteractions()}
+            {activeTab === 'correlations' && (
+                <CorrelationHeatmap correlationMatrix={data.correlation_matrix} />
+            )}
 
-            {renderDetailModal()}
+            {activeTab === 'interactions' && (
+                <InteractionsView interactions={data.interactions} />
+            )}
+
+            <ColumnDetailModal column={selectedColumn} onClose={() => setSelectedColumn(null)} />
         </div>
     );
 };
