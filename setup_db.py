@@ -68,11 +68,13 @@ daily_revenue['date'] = pd.date_range(start='2023-01-01', periods=len(daily_reve
 con = duckdb.connect("codejam_15.db")
 
 # Drop existing tables if they exist
-for table in ['customers', 'products', 'orders', 'departments', 'payroll', 'expenses', 'daily_revenue']:
-    try:
-        con.execute(f"DROP TABLE IF EXISTS {table}")
-    except:
-        pass
+con.execute("DROP TABLE IF EXISTS customers")
+con.execute("DROP TABLE IF EXISTS products")
+con.execute("DROP TABLE IF EXISTS orders")
+con.execute("DROP TABLE IF EXISTS departments")
+con.execute("DROP TABLE IF EXISTS payroll")
+con.execute("DROP TABLE IF EXISTS expenses")
+con.execute("DROP TABLE IF EXISTS daily_revenue")
 
 # Load tables into DuckDB
 con.register('customers_df', customers)
@@ -93,7 +95,7 @@ con.execute("CREATE TABLE expenses AS SELECT * FROM expenses_df")
 con.execute("CREATE TABLE daily_revenue AS SELECT * FROM daily_revenue_df")
 
 # -----------------------------
-# Step 3: Verify
+# Step 3: Verify tables were created
 # -----------------------------
 print("✓ Database setup complete!")
 print("\nTables in DuckDB:")
@@ -101,22 +103,5 @@ tables = con.execute("SHOW TABLES").fetchall()
 for table in tables:
     count = con.execute(f"SELECT COUNT(*) FROM {table[0]}").fetchone()[0]
     print(f"  - {table[0]}: {count} rows")
-
-print("\n✓ Sample data:")
-print("\nTop 5 revenue days:")
-print(con.execute("""
-SELECT date, total_revenue, total_tax 
-FROM daily_revenue 
-ORDER BY total_revenue DESC 
-LIMIT 5
-""").fetchall())
-
-print("\nPayroll per department:")
-print(con.execute("""
-SELECT d.department_name, SUM(p.salary) AS total_payroll
-FROM payroll p
-JOIN departments d ON p.department_id = d.department_id
-GROUP BY d.department_name
-""").fetchall())
 
 con.close()
