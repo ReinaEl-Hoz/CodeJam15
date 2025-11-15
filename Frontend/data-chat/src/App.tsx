@@ -171,9 +171,6 @@ export default function App() {
           <div className="flex-1 overflow-y-auto p-6">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-                  <Sparkles className="w-8 h-8 text-white" />
-                </div>
                 <h2 className="text-2xl font-semibold text-slate-900 mb-3">
                   Ask anything about your data
                 </h2>
