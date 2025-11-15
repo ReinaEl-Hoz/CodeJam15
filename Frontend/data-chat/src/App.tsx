@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, BarChart3, LineChart, TrendingUp, Plus, Calendar, Download, Trash2 } from 'lucide-react';
 import Plot from 'react-plotly.js';
 import { fetchChartData } from './services/api';
@@ -41,6 +41,11 @@ export default function App() {
   const [selectedCharts, setSelectedCharts] = useState<string[]>([]);
   const [chartTypes, setChartTypes] = useState<Record<string, ChartType>>({});
 
+  // NEW: resizable chat panel state
+  const [chatWidth, setChatWidth] = useState(50); // percentage of main content area
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
   // Load conversations from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('dataAnalyticsConversations');
@@ -79,6 +84,37 @@ export default function App() {
       }
     }
   }, [activeConversation, conversations]);
+
+  // === Resize handlers ===
+  const startResize = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      if (!isResizing || !containerRef.current) return;
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      let newWidth = (offsetX / rect.width) * 100;
+
+      // clamp between 25% and 75%
+      newWidth = Math.max(25, Math.min(75, newWidth));
+      setChatWidth(newWidth);
+    }
+
+    function handleMouseUp() {
+      if (isResizing) setIsResizing(false);
+    }
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
 
   const handleNewConversation = () => {
     setActiveConversation(null);
@@ -357,9 +393,12 @@ export default function App() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex" ref={containerRef}>
         {/* Left Panel - Chat/Search */}
-        <div className="w-1/2 flex flex-col border-r border-slate-200">
+        <div
+          className="flex flex-col border-r border-slate-200"
+          style={{ width: `${chatWidth}%` }}
+        >
           <div className="flex-1 overflow-y-auto px-6 py-4">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-8">
@@ -452,8 +491,17 @@ export default function App() {
           </div>
         </div>
 
+        {/* Resize handle */}
+        <div
+          className="w-1.5 bg-slate-200 hover:bg-slate-300 cursor-col-resize"
+          onMouseDown={startResize}
+        />
+
         {/* Right Panel - Visualizations */}
-        <div className="w-1/2 flex flex-col bg-slate-50">
+        <div
+          className="flex flex-col bg-slate-50"
+          style={{ width: `${100 - chatWidth}%` }}
+        >
           <div className="p-6 border-b border-slate-200 bg-white flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Visualizations</h2>
