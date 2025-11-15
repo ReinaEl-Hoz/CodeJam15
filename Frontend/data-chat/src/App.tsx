@@ -297,8 +297,7 @@ export default function App() {
                     </div>
 
                     {/* Simple Chart Visualization */}
-                    <div className="h-48 flex items-end justify-between gap-2 mb-4">
-                      <div style={{ width: '800px', height: '500px' }}>
+                    <div className="py-4">
                         <DynamicChart
                           chartType={chartConfig.chartType}
                           data={chartConfig.data}
@@ -306,7 +305,6 @@ export default function App() {
                           yKey={chartConfig.yKey}
                           layoutOptions={chartConfig.layoutOptions}
                         />
-                      </div>
                     </div>
 
                     {chart.insight && (
