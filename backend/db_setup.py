@@ -68,7 +68,7 @@ daily_revenue['date'] = pd.date_range(start='2023-01-01', periods=len(daily_reve
 # -----------------------------
 # Step 2: Setup DuckDB
 # -----------------------------
-con = duckdb.connect("company_test.db")
+con = duckdb.connect("codejam_15.db")
 
 # Load tables into DuckDB
 con.register('customers_df', customers)
@@ -117,5 +117,5 @@ print(payroll_summary)
 # -----------------------------
 # Step 4: Fetch NumPy arrays for ML/Plotly (optional)
 # -----------------------------
-orders_np = con.execute("SELECT * FROM orders").fetch_numpy()
+orders_np = con.execute("SELECT * FROM orders").fetchnumpy()
 print("\nExample revenue array (first 5):", orders_np['revenue'][:5])
