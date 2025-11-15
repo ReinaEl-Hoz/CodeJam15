@@ -15,7 +15,8 @@ def index():
         'endpoints': [
             '/api/query-data',
             '/api/available-queries',
-            '/api/test-db'
+            '/api/test-db',
+            '/api/chat'
         ]
     }
 

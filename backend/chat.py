@@ -3,7 +3,7 @@ import re
 import json
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from typing import List
+from typing import List, Union
 
 from google import genai  # from google-genai package
 from db_utils import get_database_schema_with_descriptions
@@ -20,7 +20,7 @@ client = genai.Client(api_key=api_key)
 class SuggestedChart(BaseModel):
     type: str
     x: str
-    y: str
+    y: str  # Can be single column or multiple columns for multi-series charts
     title: str
 
 class Query(BaseModel):
