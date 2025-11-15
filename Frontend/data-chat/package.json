@@ -10,9 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.3",
     "lucide-react": "^0.553.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-grid-layout": "^1.5.2",
     "react-plotly.js": "^2.6.0",
     "react-router-dom": "^7.9.6",
     "recharts": "^3.4.1"
