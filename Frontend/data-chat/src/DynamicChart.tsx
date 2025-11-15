@@ -89,9 +89,9 @@ const DynamicChart: React.FC<DynamicChartProps> = ({
 
   const layout: Partial<Plotly.Layout> = {
     autosize: true,
-  responsive: true,
-  width: undefined,
-  height: undefined,
+    responsive: true,
+    width: undefined,
+    height: undefined,
     title: {
       text: layoutOptions?.title?.text || layoutOptions?.title || '',
       font: {
@@ -140,7 +140,7 @@ const DynamicChart: React.FC<DynamicChartProps> = ({
       color: '#4a4a4a',
     },
     plot_bgcolor: '#ffffff',
-    paper_bgcolor: '#ffffffff',
+    paper_bgcolor: '#ffffff',
     margin: {
       l: 60,
       r: 40,
@@ -158,7 +158,7 @@ const DynamicChart: React.FC<DynamicChartProps> = ({
           data={plotData} 
           layout={layout}
           config={{
-            displayModeBar: true,
+            displayModeBar: false,
             displaylogo: false,
             modeBarButtonsToRemove: ['lasso2d', 'select2d'],
           }}

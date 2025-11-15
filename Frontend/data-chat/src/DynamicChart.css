@@ -11,10 +11,11 @@
 
 .dynamic-chart-container .modebar {
   background-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .dynamic-chart-container .modebar-btn {
-  color: #6a6a6a !important;
+  color:transparent !important;
 }
 
 .dynamic-chart-container .modebar-btn:hover {

@@ -631,7 +631,7 @@ export default function App() {
                                   }}
                                   config={{
                                     responsive: true,
-                                    displayModeBar: true,
+                                    displayModeBar: false,
                                     displaylogo: false,
                                   }}
                                   style={{ width: '100%', height: '300px' }}
@@ -758,7 +758,7 @@ export default function App() {
                             }}
                             config={{
                               responsive: true,
-                              displayModeBar: true,
+                              displayModeBar: false,
                               displaylogo: false,
                             }}
                             style={{ width: '100%', height: '400px' }}
