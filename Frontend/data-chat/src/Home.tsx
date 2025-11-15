@@ -147,18 +147,6 @@ export default function Home() {
                     return;
                 }
                 
-                // Check for multi-series (not allowed)
-                if (Array.isArray(query.suggested_chart.y)) {
-                    const errorMessage: Message = {
-                        id: `msg-${Date.now()}-ai`,
-                        role: 'ai',
-                        content: `❌ Multi-series charts are not supported. Please request a single metric to visualize.`,
-                        timestamp: new Date(),
-                    };
-                    setMessages((prev) => [...prev, errorMessage]);
-                    return;
-                }
-                
                 // Transform data for chart
                 const chartTypeMap: Record<string, 'line' | 'bar'> = {
                     'line': 'line',
