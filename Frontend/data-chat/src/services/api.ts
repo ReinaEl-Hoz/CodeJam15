@@ -49,6 +49,7 @@ export interface ChatQuery {
   name: string;
   sql: string;
   data: any[];
+  plotly_data: PlotlyData | null;  // Plotly-ready data from backend
   error?: string;
   suggested_chart: {
     type: string;

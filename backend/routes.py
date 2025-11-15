@@ -163,6 +163,60 @@ def chat():
                     'error': error_msg
                 }), 400
         
+        # Helper function to transform data to Plotly format
+        def transform_to_plotly(data, x_key, y_key, chart_type, title):
+            """Transform query data to Plotly format"""
+            if not data or len(data) == 0:
+                return None
+            
+            x_values = []
+            y_values = []
+            
+            for row in data:
+                # Try to find the x and y values in the row (case-insensitive)
+                x_value = None
+                y_value = None
+                
+                # Try exact match first
+                if x_key in row:
+                    x_value = row[x_key]
+                elif x_key.lower() in {k.lower(): k for k in row.keys()}:
+                    x_value = row[{k.lower(): k for k in row.keys()}[x_key.lower()]]
+                
+                if y_key in row:
+                    y_value = row[y_key]
+                elif y_key.lower() in {k.lower(): k for k in row.keys()}:
+                    y_value = row[{k.lower(): k for k in row.keys()}[y_key.lower()]]
+                
+                # Fallback to first/second column if keys not found
+                if x_value is None and len(row) > 0:
+                    x_value = list(row.values())[0]
+                if y_value is None and len(row) > 1:
+                    y_value = list(row.values())[1]
+                
+                if x_value is not None and y_value is not None:
+                    x_values.append(x_value)
+                    try:
+                        y_values.append(float(y_value))
+                    except (ValueError, TypeError):
+                        y_values.append(0)
+            
+            if len(x_values) == 0 or len(y_values) == 0:
+                return None
+            
+            plotly_obj = {
+                'x': x_values,
+                'y': y_values,
+                'type': 'scatter' if chart_type == 'line' else 'bar',
+                'name': title
+            }
+            
+            # Only add mode for line charts
+            if chart_type == 'line':
+                plotly_obj['mode'] = 'lines'
+            
+            return plotly_obj
+        
         # Execute SQL queries and get data
         queries_with_data = []
         for q in result.queries:
@@ -217,14 +271,26 @@ def chat():
                 if data:
                     print(f"  Sample row: {data[0]}")
                 
+                # Transform to Plotly format
+                plotly_data = None
+                if data and isinstance(q.suggested_chart.y, str):  # Only single y-axis supported
+                    plotly_data = transform_to_plotly(
+                        data,
+                        q.suggested_chart.x,
+                        q.suggested_chart.y,
+                        q.suggested_chart.type,
+                        q.suggested_chart.title
+                    )
+                
                 queries_with_data.append({
                     'name': q.name,
                     'sql': q.sql,
-                    'data': data,
+                    'data': data,  # Keep raw data for reference
+                    'plotly_data': plotly_data,  # Add Plotly-ready data
                     'suggested_chart': {
                         'type': q.suggested_chart.type,
                         'x': q.suggested_chart.x,
-                        'y': q.suggested_chart.y,  # Can be string or list
+                        'y': q.suggested_chart.y,
                         'title': q.suggested_chart.title
                     }
                 })
@@ -235,11 +301,12 @@ def chat():
                     'name': q.name,
                     'sql': q.sql,
                     'data': [],
+                    'plotly_data': None,
                     'error': error_msg,
                     'suggested_chart': {
                         'type': q.suggested_chart.type,
                         'x': q.suggested_chart.x,
-                        'y': q.suggested_chart.y,  # Can be string or list
+                        'y': q.suggested_chart.y,
                         'title': q.suggested_chart.title
                     }
                 })

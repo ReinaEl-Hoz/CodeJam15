@@ -109,12 +109,6 @@ class GeminiSQLWrapper:
 
 USER REQUEST: "{user_input}"
 
-IMPORTANT CONSTRAINTS:
-1. The user request MUST be related to the database schema above. If the request is about topics not in the schema (e.g., weather, sports, general knowledge), return an error.
-2. You can ONLY generate "line" or "bar" chart types. NO pie charts, scatter plots, histograms, or multi-series charts.
-3. The "y" field MUST be a single string (column name), NEVER an array. Only one Y-axis value per chart.
-4. If the data cannot be represented with a simple line or bar chart, indicate this in the response.
-
 Generate SQL queries and chart metadata based on the user's request.
 
 Return ONLY a JSON object with this EXACT structure:
@@ -126,7 +120,7 @@ Return ONLY a JSON object with this EXACT structure:
       "suggested_chart": {{
         "type": "line" OR "bar" ONLY,
         "x": "column_name_for_x_axis",
-        "y": "column_name_for_y_axis" (MUST be a single string, not array),
+        "y": "column_name_for_y_axis",
         "title": "Descriptive Chart Title"
       }}
     }}
@@ -143,7 +137,7 @@ Rules:
 - Only use tables and columns from the schema
 - Generate valid SQL with proper syntax
 - Chart type MUST be "line" (for time series) or "bar" (for categories) ONLY
-- y field MUST be a single string column name, NEVER an array
+- x,y field MUST be a single string column name, NEVER an array
 - If user asks about unrelated topics, return error JSON
 - Include semicolon at end of SQL
 - Use descriptive snake_case names
