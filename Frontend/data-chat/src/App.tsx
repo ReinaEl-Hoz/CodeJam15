@@ -13,10 +13,7 @@ import {
 import Plot from 'react-plotly.js';
 import { fetchChartData } from './services/api';
 import type { PlotlyData } from './services/api';
-
-// 🔹 from your first snippet
 import { LandingPage } from './components/LandingPage';
-// (Sidebar / ChatInterface / ChartsDisplay are not used in this integrated version yet)
 
 interface Message {
   id: string;
@@ -382,7 +379,7 @@ export default function App() {
                 key={conv.id}
                 className={`group relative mb-1 rounded-lg transition-all ${
                   activeConversation === conv.id
-                    ? 'bg.white shadow-sm border border-slate-200'
+                    ? 'bg-white shadow-sm border border-slate-200'
                     : 'hover:bg-white/60'
                 }`}
               >
@@ -467,19 +464,17 @@ export default function App() {
                   <div
                     key={message.id}
                     className={`flex gap-4 ${
+                      // Adjusted alignment logic
                       message.role === 'user' ? 'justify-end' : 'justify-start'
                     }`}
                   >
-                    {message.role === 'ai' && (
-                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <BarChart3 className="w-4 h-4 text-white" />
-                      </div>
-                    )}
+                    {/* AVATAR REMOVED: Removed the AI avatar block here */}
+                    
                     <div
                       className={`rounded-2xl px-4 py-3 max-w-[80%] ${
                         message.role === 'user'
                           ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-100 text-slate-900'
+                          : 'bg-slate-100 text-slate-900' // AI message without icon
                       }`}
                     >
                       <p className="text-sm leading-relaxed">{message.content}</p>
@@ -488,9 +483,7 @@ export default function App() {
                 ))}
                 {isLoading && (
                   <div className="flex gap-4 justify-start">
-                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <BarChart3 className="w-4 h-4 text-white" />
-                    </div>
+                    {/* AVATAR REMOVED: Removed the loading AI avatar block here */}
                     <div className="rounded-2xl px-4 py-3 bg-slate-100 text-slate-900">
                       <p className="text-sm">Analyzing your data...</p>
                     </div>
@@ -563,7 +556,7 @@ export default function App() {
 
           <div className="flex-1 overflow-y-auto p-6">
             {charts.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text.center px-8">
+              <div className="h-full flex flex-col items-center justify-center text-center px-8">
                 <div className="w-24 h-24 bg-slate-200 rounded-2xl flex items-center justify-center mb-6">
                   <LineChart className="w-12 h-12 text-slate-400" />
                 </div>
