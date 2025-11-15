@@ -1,4 +1,7 @@
+from fastapi.responses import JSONResponse
 from flask import Blueprint, request, jsonify
+from chart_persistence_utils import save_chart_query
+from key_insights import get_key_insights
 from queries import QUERY_FUNCTIONS
 from chat import GeminiSQLWrapper
 from db_utils import get_connection
@@ -229,3 +232,7 @@ def chat():
             'success': False,
             'error': error_msg
         }), 500
+    
+@api.get("/key-insights")
+def profile_report(query: str):
+    return get_key_insights(query)
