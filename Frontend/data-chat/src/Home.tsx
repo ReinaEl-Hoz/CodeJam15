@@ -14,7 +14,6 @@ import {
 import Plot from 'react-plotly.js';
 import { sendChatMessage } from './services/api';
 import type { PlotlyData } from './services/api';
-import { LandingPage } from './components/LandingPage';
 import { useNavigate } from 'react-router-dom';
 
 interface Message {
@@ -43,8 +42,6 @@ interface Conversation {
 type ChartType = 'bar' | 'line' | 'scatter';
 
 export default function App() {
-  // 🔹 Landing page gate
-  const [showLanding, setShowLanding] = useState(true);
 
   // === Analytics state ===
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -388,11 +385,6 @@ export default function App() {
   const selectedChartObjects: ChartData[] = charts.filter(c =>
     selectedCharts.includes(c.id)
   );
-
-  // 🔹 LandingPage gate
-  if (showLanding) {
-    return <LandingPage onGetStarted={() => setShowLanding(false)} />;
-  }
 
   // 🔹 Main analytics UI with iOS Siri Search
   return (

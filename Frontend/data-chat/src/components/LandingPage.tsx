@@ -1,11 +1,12 @@
 import { ArrowRight } from 'lucide-react';
-import DotGrid from './DotGrid'; // Import the new background component
+import DotGrid from './DotGrid';
+import { useNavigate } from "react-router-dom";
 
-interface LandingPageProps {
-  onGetStarted: () => void;
-}
-
-export function LandingPage({ onGetStarted }: LandingPageProps) {
+export default function LandingPage() {
+  const navigate = useNavigate();
+  const onGetStarted = () => {
+    navigate("/query-data");
+  };
   return (
     // Set min-h-screen to ensure the wrapper covers the viewport for the grid
     <div className="relative w-screen min-h-screen bg-slate-50 overflow-hidden">
@@ -31,7 +32,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
         <div className="text-center space-y-6 max-w-2xl px-8 pointer-events-auto">
           <div className="inline-block animate-fade-in">
             <h1 className="text-6xl text-slate-900 tracking-tight mb-2 font-extrabold">
-              DataChat AI
+              Queryon
             </h1>
           </div>
           
@@ -48,10 +49,6 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </span>
           </button>
-          
-          <p className="text-sm text-slate-500 mt-4 animate-fade-in-delay-3">
-            Move mouse to interact
-          </p>
         </div>
       </div>
       

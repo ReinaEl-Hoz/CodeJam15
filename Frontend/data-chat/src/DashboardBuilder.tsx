@@ -15,6 +15,8 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -124,9 +126,8 @@ const PlotlyWidget: React.FC<PlotlyWidgetProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`h-full bg-white rounded-lg shadow-lg border-2 p-4 relative group transition-colors ${
-        isSelected ? 'border-blue-500' : 'border-gray-200'
-      }`}
+      className={`h-full bg-white rounded-lg shadow-lg border-2 p-4 relative group transition-colors ${isSelected ? 'border-blue-500' : 'border-gray-200'
+        }`}
     >
       <button
         onMouseDown={(e) => {
@@ -157,7 +158,7 @@ const PlotlyWidget: React.FC<PlotlyWidgetProps> = ({
           }}
           config={{
             responsive: true,
-            displayModeBar: true,
+            displayModeBar: false,
             displaylogo: false,
           }}
           style={{ width: '100%', height: '100%' }}
@@ -191,9 +192,8 @@ const TitleWidget: React.FC<TitleWidgetProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`h-full bg-white rounded-lg shadow-lg border-2 p-4 relative group transition-colors ${
-        isSelected ? 'border-blue-500' : 'border-gray-200'
-      }`}
+      className={`h-full bg-white rounded-lg shadow-lg border-2 p-4 relative group transition-colors ${isSelected ? 'border-blue-500' : 'border-gray-200'
+        }`}
     >
       <button
         onMouseDown={(e) => {
@@ -242,9 +242,8 @@ const TextWidget: React.FC<TextWidgetProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`h-full bg-white rounded-lg shadow-lg border-2 p-4 relative group transition-colors ${
-        isSelected ? 'border-blue-500' : 'border-gray-200'
-      }`}
+      className={`h-full bg-white rounded-lg shadow-lg border-2 p-4 relative group transition-colors ${isSelected ? 'border-blue-500' : 'border-gray-200'
+        }`}
     >
       <button
         onMouseDown={(e) => {
@@ -475,14 +474,26 @@ const DashboardBuilder: React.FC = () => {
   };
 
   // ---------- Render ----------
-
+  const navigate = useNavigate();
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="w-80 bg-white shadow-lg flex flex-col">
-        <div className="p-6 border-b">
-          <h1 className="text-2xl font-bold text-gray-800">Dashboard Builder</h1>
-          <p className="text-sm text-gray-500 mt-1">Create your custom dashboard</p>
+        <div className='flex flex-col'>
+          <div className='pt-4 pl-4 flex flex-row gap-2 items-center'>
+            <div><button
+              onClick={() => navigate(-1)} // go back
+              className="flex items-center gap-2 bg-blue-800 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 hover:scale-105 transition-transform duration-200"
+            >
+              <ArrowLeft className="w-4 h-4" />
+
+            </button></div>
+            <div className='text-blue-800 font-bold'><p>Back to Search</p></div>
+          </div>
+          <div className="p-6 border-b">
+            <h1 className="text-2xl font-bold text-gray-800">Dashboard Builder</h1>
+            <p className="text-sm text-gray-500 mt-1">Create your custom dashboard</p>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
