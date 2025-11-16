@@ -444,7 +444,10 @@ export default function App() {
                                     }`}
                             >
                                 <button
-                                    onClick={() => setActiveConversation(conv.id)}
+                                    onClick={() => {
+                                        setActiveConversation(conv.id);
+                                        setExpanded(true);
+                                    }}
                                     className="w-full text-left p-3 pr-10"
                                 >
                                     <div className="font-medium text-sm text-slate-900 truncate">
