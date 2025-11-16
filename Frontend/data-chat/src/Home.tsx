@@ -65,6 +65,8 @@ export default function App() {
 
     const availableDatabases = [
         { id: 'main', name: 'Acme Corp – Analytics Warehouse' },
+        { id: 'hospital', name: 'General Hospital' },
+
     ];
     
     // Predefined suggestions
@@ -174,6 +176,11 @@ export default function App() {
     const handleSearch = async (content: string) => {
         if (!content.trim() || isLoading) return;
 
+        // Check if database is selected
+        if (!selectedDatabase) {
+            setErrorMessage('Please select a dataset before searching.');
+            return;
+        }
         // Hide suggestions when searching
         setShowSuggestions(false);
         setExpanded(true);
@@ -217,7 +224,7 @@ export default function App() {
 
         try {
             // Call chat API
-            const response = await sendChatMessage(content);
+            const response = await sendChatMessage(content, selectedDatabase);
 
             // Check for error response
             if (!response.success || response.error) {
@@ -555,7 +562,9 @@ export default function App() {
                                         <button
                                           key={db.id}
                                           type="button"
-                                          onClick={() => {
+                                          onMouseDown={(e) => {  // Changed from onClick to onMouseDown
+                                            e.preventDefault();  // Prevent blur from firing
+                                            console.log('Setting database to:', db.id); // Debug
                                             setSelectedDatabase(db.id);
                                             setShowDatabaseDropdown(false);
                                           }}
