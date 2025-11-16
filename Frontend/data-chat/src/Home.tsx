@@ -61,6 +61,7 @@ export default function App() {
     const [showDatabaseDropdown, setShowDatabaseDropdown] = useState(false);
     const navigate = useNavigate();
     const [expanded, setExpanded] = useState(false);
+    const [sidebarWidth, setSidebarWidth] = useState(300); // default 300px
 
     const availableDatabases = [
         { id: 'main', name: 'Acme Corp – Analytics Warehouse' },
@@ -80,6 +81,25 @@ export default function App() {
         'Display customer analytics',
         'Show department spending',
     ];
+
+    // === Handle sidebar resizing ===
+    const startResizing = (e) => {
+      e.preventDefault();
+      document.addEventListener("mousemove", resize);
+      document.addEventListener("mouseup", stopResizing);
+    };
+
+  const resize = (e) => {
+    const newWidth = e.clientX;
+    if (newWidth > 187.5 && newWidth < 500) { // optional limits
+      setSidebarWidth(newWidth);
+    }
+  };
+
+  const stopResizing = () => {
+    document.removeEventListener("mousemove", resize);
+    document.removeEventListener("mouseup", stopResizing);
+  };
 
     // === Load / save conversations ===
     useEffect(() => {
@@ -411,15 +431,16 @@ export default function App() {
         selectedCharts.includes(c.id)
     );
 
-    // 🔹 Main analytics UI with iOS Siri Search
+    // 🔹 Main analytics UI with Search
     return (
         <div className="flex h-screen bg-white">
             {/* Sidebar */}
-            <div className="w-64 border-r border-slate-200 flex flex-col bg-slate-50">
+            <div className="border-r border-slate-200 flex flex-col bg-slate-50 relative"
+                 style={{ width: sidebarWidth }}>
                 <div className="p-4 border-b border-slate-200">
                     <button
                         onClick={handleNewConversation}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 bg-blue-800 hover:bg-blue-700 text-white rounded-lg transition-all font-medium"
+                        className="flex items-center gap-2 pl-4 pr-6 py-2.5 bg-blue-800 hover:bg-blue-700 text-white rounded-lg transition-all font-medium"
                     >
                         <Plus className="w-4 h-4" />
                         New Search
@@ -468,6 +489,11 @@ export default function App() {
                         ))
                     )}
                 </div>
+
+                <div
+                  onMouseDown={startResizing}
+                  className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-slate-300"
+                ></div>
 
                 <div className="p-4 border-t border-slate-200">
                     <div className="flex items-center gap-3 text-sm text-slate-600">
