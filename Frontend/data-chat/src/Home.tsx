@@ -549,7 +549,6 @@ export default function App() {
                                         }}
                                         placeholder="Ask about your data"
                                         disabled={isLoading}
-                                        autoFocus
                                         className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-50 shadow-lg hover:shadow-xl focus:shadow-2xl backdrop-blur-sm cursor-pointer"
                                         style={{
                                             background: showSuggestions
