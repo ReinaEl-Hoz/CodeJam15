@@ -687,35 +687,32 @@ export default function App() {
                     className={`flex-1 overflow-y-auto bg-slate-50 transition-transform duration-700 ease-in-out ${expanded ? "translate-y-0" : "translate-y-full"}`}
                 >
                     <div className="p-6">
-                        {charts.length === 0 && !isLoading ? (
-                            <div></div>
-                        ) : (
-                            <div className="max-w-6xl mx-auto">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div>
-                                        <h2 className="text-xl font-semibold text-slate-900">Results</h2>
-                                        <p className="text-sm text-slate-600 mt-1">
-                                            {charts.length} visualization{charts.length !== 1 ? 's' : ''} found
-                                        </p>
-                                    </div>
-                                    {charts.length > 0 && (
-                                        <button
-                                            onClick={toggleCompareMode}
-                                            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-full transition-all ${compareMode
-                                                ? 'bg-blue-50 border-blue-500 text-blue-700'
-                                                : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
-                                                }`}
-                                        >
-                                            <BarChart3 className="w-4 h-4" />
-                                            {compareMode ? 'Compare: ON' : 'Compare'}
-                                            {compareMode && selectedCharts.length > 0 && (
-                                                <span className="ml-1 text-xs text-slate-500">
-                                                    ({selectedCharts.length}/2)
-                                                </span>
-                                            )}
-                                        </button>
-                                    )}
+                        <div className="max-w-6xl mx-auto">
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-xl font-semibold text-slate-900">Results</h2>
+                                    <p className="text-sm text-slate-600 mt-1">
+                                        {charts.length} visualization{charts.length !== 1 ? 's' : ''} found
+                                    </p>
                                 </div>
+                                {charts.length > 0 && (
+                                    <button
+                                        onClick={toggleCompareMode}
+                                        className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-full transition-all ${compareMode
+                                            ? 'bg-blue-50 border-blue-500 text-blue-700'
+                                            : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
+                                            }`}
+                                    >
+                                        <BarChart3 className="w-4 h-4" />
+                                        {compareMode ? 'Compare: ON' : 'Compare'}
+                                        {compareMode && selectedCharts.length > 0 && (
+                                            <span className="ml-1 text-xs text-slate-500">
+                                                ({selectedCharts.length}/2)
+                                            </span>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
 
                                 <div className="space-y-6">
                                     {/* Compare block */}
@@ -778,7 +775,7 @@ export default function App() {
                                     )}
 
                                     {/* Individual charts */}
-                                    {charts.map(chart => {
+                                    {charts.length > 0 && charts.map(chart => {
                                         const chartDivId = `chart-${chart.id}`;
                                         const isSelected = selectedCharts.includes(chart.id);
                                         const plotData = getTransformedData(chart);
@@ -939,8 +936,7 @@ export default function App() {
                                         );
                                     })}
                                 </div>
-                            </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             </div>

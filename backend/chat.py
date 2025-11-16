@@ -147,6 +147,16 @@ class GeminiSQLWrapper:
         - Use descriptive snake_case names
         - No markdown, no explanation, just raw JSON
 
+        DUCKDB DATE FUNCTIONS (CRITICAL - Use these, NOT MySQL syntax):
+        - Date subtraction: CURRENT_DATE - INTERVAL '20 days' (NOT DATE_SUB)
+        - Date addition: CURRENT_DATE + INTERVAL '7 days'
+        - Examples:
+          * Last 20 days: WHERE date >= CURRENT_DATE - INTERVAL '20 days'
+          * Last month: WHERE date >= CURRENT_DATE - INTERVAL '1 month'
+          * Date range: WHERE date BETWEEN CURRENT_DATE - INTERVAL '30 days' AND CURRENT_DATE
+        - NEVER use: DATE_SUB(), DATE_ADD(), DATEDIFF() - these are MySQL functions
+        - Use: CURRENT_DATE, CURRENT_TIMESTAMP, INTERVAL 'N days/months/years'
+
         CRITICAL: Return ONLY the JSON object, nothing else.
         """
 
