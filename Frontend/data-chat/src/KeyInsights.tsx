@@ -159,26 +159,30 @@ export default function KeyInsights() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
             <header className="bg-white border-b sticky top-0 shadow-sm">
-                <div className="container mx-auto py-5">
-                    <div className="flex gap-4">
-                        <div className='pt-4 pl-4 flex flex-row gap-2'>
-                            <div><button
-                                onClick={() => navigate(-1)} // go back
-                                className="flex items-center gap-2 bg-blue-800 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 hover:scale-105 transition-transform duration-200"
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-
-                            </button></div>
-                            <div className='text-blue-800 font-bold'><p>Back to Search</p></div>
-                        </div>
-                        <div className="p-3 bg-blue-800 rounded-xl shadow-md">
-                            <BarChart3 className="h-7 w-7 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl">Data Analytics & Insights</h1>
-                            <p className="text-sm text-muted-foreground">
-                                Advanced insights, correlations, and statistical analysis
-                            </p>
+                <div className="relative py-5">
+                    {/* Back button - fixed on left, vertically centered */}
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="flex items-center gap-2 bg-blue-800 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 hover:scale-105 transition-transform duration-200"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                        </button>
+                        <p className="text-blue-800 font-bold">Back to Search</p>
+                    </div>
+                    
+                    {/* Icon and title - aligned with tabs container */}
+                    <div className="container mx-auto px-6">
+                        <div className="flex gap-4">
+                            <div className="p-3 bg-blue-800 rounded-xl shadow-md">
+                                <BarChart3 className="h-7 w-7 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl">Data Analytics & Insights</h1>
+                                <p className="text-sm text-muted-foreground">
+                                    Advanced insights, correlations, and statistical analysis
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -237,7 +241,7 @@ export default function KeyInsights() {
                   {data.columns.map((column) => (
                       <ColumnStatistics key={column.name} column={column} />
                   ))}
-              </div>
+            </div>
           </TabsContent>
 
           {(data.correlations && data.correlations.length > 0) || data.correlation_matrix ? (
@@ -265,6 +269,6 @@ export default function KeyInsights() {
 
         </Tabs>
       </main>
-    </div>
-  );
+        </div>
+    );
 }
