@@ -475,7 +475,7 @@ export default function App() {
                                         {conv.title}
                                     </div>
                                     <div className="text-xs text-slate-500 truncate mt-1">
-                                        {conv.preview}
+                                        {conv.timestamp.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short"})}
                                     </div>
                                 </button>
                                 <button
