@@ -64,7 +64,7 @@ export default function App() {
     const chartRefs = useRef<{ [key: string]: any }>({}); // store refs per chart
 
     const availableDatabases = [
-        { id: 'main', name: 'Acme Corp – Analytics Warehouse' },
+        { id: 'acme', name: 'Acme Corp – Analytics Warehouse' },
         { id: 'hospital', name: 'General Hospital' },
 
     ];
@@ -84,13 +84,13 @@ export default function App() {
     ];
 
     // === Handle sidebar resizing ===
-    const startResizing = (e) => {
+    const startResizing = (e: { preventDefault: () => void; }) => {
       e.preventDefault();
       document.addEventListener("mousemove", resize);
       document.addEventListener("mouseup", stopResizing);
     };
 
-  const resize = (e) => {
+  const resize = (e: { clientX: any; }) => {
     const newWidth = e.clientX;
     if (newWidth > 187.5 && newWidth < 500) { // optional limits
       setSidebarWidth(newWidth);
