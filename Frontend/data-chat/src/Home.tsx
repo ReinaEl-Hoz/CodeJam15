@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     BarChart3,
     LineChart,
@@ -61,6 +61,7 @@ export default function App() {
     const navigate = useNavigate();
     const [expanded, setExpanded] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState(300); // default 300px
+    const chartRefs = useRef<{ [key: string]: any }>({}); // store refs per chart
 
     const availableDatabases = [
         { id: 'main', name: 'Acme Corp – Analytics Warehouse' },
@@ -345,11 +346,11 @@ export default function App() {
         }
     }, [showDatabaseDropdown]);
 
-    const downloadChart = (chart: ChartData, chartId: string) => {
-        const plotlyDiv = document.getElementById(chartId);
-        if (plotlyDiv) {
+    const downloadChart = (chart: ChartData) => {
+        const plotlyDiv = chartRefs.current[chart.id];
+        if (plotlyDiv && plotlyDiv.el) {
             // @ts-ignore
-            window.Plotly.downloadImage(plotlyDiv, {
+            window.Plotly.downloadImage(plotlyDiv.el, {
                 format: 'png',
                 width: 1200,
                 height: 800,
@@ -863,7 +864,7 @@ export default function App() {
                                                             {getDisplayTypeLabel(chart)}
                                                         </span>
                                                         <button
-                                                            onClick={() => downloadChart(chart, chartDivId)}
+                                                            onClick={() => downloadChart(chart)}
                                                             className="p-2 hover:bg-slate-100 rounded-lg transition-all"
                                                             title="Download chart"
                                                         >
@@ -874,6 +875,9 @@ export default function App() {
 
                                                 <div id={chartDivId} onClick={e => e.stopPropagation()}>
                                                     <Plot
+                                                        ref={(el) => {
+                                                          if (el) chartRefs.current[chart.id] = el;
+                                                        }}
                                                         data={plotData}
                                                         layout={{
                                                             autosize: true,
