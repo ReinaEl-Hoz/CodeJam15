@@ -1,7 +1,6 @@
-# main.py
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
-from routes import api  # Replace 'your_routes_file' with actual filename
+from routes import api 
 
 app = Flask(__name__)
 

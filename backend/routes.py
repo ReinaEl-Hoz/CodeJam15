@@ -330,4 +330,7 @@ def chat():
     
 @api.get("/key-insights")
 def profile_report(query: str):
-    return get_key_insights(query)
+    return jsonify(get_key_insights(query))
+
+if __name__ == "__main__":
+    print(get_key_insights("SELECT date, total_revenue FROM daily_revenue ORDER BY date"))
