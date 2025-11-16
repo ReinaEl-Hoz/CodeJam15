@@ -10,7 +10,7 @@ export default function LandingPage() {
   return (
     // Set min-h-screen to ensure the wrapper covers the viewport for the grid
     <div className="relative w-screen min-h-screen bg-slate-50 overflow-hidden">
-      
+
       {/* 🧩 DotGrid Background */}
       <div className="absolute inset-0 z-0">
         <DotGrid
@@ -31,11 +31,17 @@ export default function LandingPage() {
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
         <div className="text-center space-y-6 max-w-2xl px-8 pointer-events-auto">
           <div className="inline-block animate-fade-in">
-            <h1 className="text-6xl text-slate-900 tracking-tight mb-2 font-extrabold">
-              Queryon
-            </h1>
+            <div className='flex flex-row items-center gap-2 text-blue-800'>
+            
+              <h1 className="text-6xl tracking-tight mb-2 font-extrabold">
+                Queryon
+              </h1>
+              <div>
+                <img src="/src/assets/logo.svg" className="w-[80px]" alt="Logo" style={{ color: "blue" }} />
+              </div>
+            </div>
           </div>
-          
+
           <p className="text-xl text-slate-700 animate-fade-in-delay">
             Transform your company's data into actionable insights
           </p>
@@ -51,7 +57,7 @@ export default function LandingPage() {
           </button>
         </div>
       </div>
-      
+
       {/* Animation Styles */}
       <style>{`
 @keyframes fadeIn {
