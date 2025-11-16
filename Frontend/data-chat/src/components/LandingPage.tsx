@@ -32,7 +32,7 @@ export default function LandingPage() {
         <div className="text-center space-y-6 max-w-2xl px-8 pointer-events-auto">
           <div className="inline-block animate-fade-in">
             <h1 className="text-6xl text-slate-900 tracking-tight mb-2 font-extrabold">
-              DataChat AI
+              Queryon
             </h1>
           </div>
           
@@ -49,10 +49,6 @@ export default function LandingPage() {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </span>
           </button>
-          
-          <p className="text-sm text-slate-500 mt-4 animate-fade-in-delay-3">
-            Move mouse to interact
-          </p>
         </div>
       </div>
       
