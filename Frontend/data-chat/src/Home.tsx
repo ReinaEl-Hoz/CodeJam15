@@ -526,7 +526,6 @@ export default function App() {
                   onChange={e => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   onFocus={() => setShowSuggestions(true)}
-                  onClick={() => setShowSuggestions(!showSuggestions)}
                   placeholder="Ask about your data"
                   disabled={isLoading}
                   autoFocus
@@ -537,34 +536,6 @@ export default function App() {
                       : 'white'
                   }}
                 />
-
-                {/* Dynamic Suggestions Dropdown */}
-                {showSuggestions && !isLoading && filteredSuggestions.length > 0 && (
-                  <div 
-                    className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-2xl shadow-2xl overflow-hidden z-10 animate-in fade-in slide-in-from-top-2 duration-200"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%)',
-                    }}
-                  >
-                    <div className="p-2 border-b border-slate-100/50 bg-gradient-to-r from-slate-50/50 to-blue-50/30">
-                      <p className="text-xs font-semibold text-slate-500 px-3 py-1">SUGGESTIONS</p>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {filteredSuggestions.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleSuggestionClick(suggestion)}
-                          className="w-full text-left px-4 py-3 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 flex items-center gap-3 border-b border-slate-50/50 last:border-b-0 group"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                            <Search className="w-4 h-4 text-blue-800 flex-shrink-0" />
-                          </div>
-                          <span className="text-sm text-slate-700 group-hover:text-blue-900 font-medium">{suggestion}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
               
               {/* Loading State (for the search bar area) */}
@@ -600,18 +571,53 @@ export default function App() {
         <div className="flex-1 overflow-y-auto bg-slate-50">
           <div className="p-6">
             {charts.length === 0 && !isLoading ? (
-              <div className="h-full flex flex-col items-center justify-center text-center px-8 py-16">
-                <div className="w-20 h-20 bg-slate-200 rounded-2xl flex items-center justify-center mb-6">
-                  <LineChart className="w-10 h-10 text-slate-400" />
+                <div className="h-full flex flex-col items-center justify-center px-8 py-16">
+                  <div className="max-w-4xl mx-auto w-full">
+                    <div className="text-center mb-8">
+                      <div className="w-20 h-20 bg-slate-200 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                        <Search className="w-10 h-10 text-slate-400" />
+                      </div>
+                      <h3 className="text-2xl font-semibold text-slate-900 mb-2">
+                        What would you like to analyze?
+                      </h3>
+                      <p className="text-slate-600">
+                        Choose a suggestion below or type your own query
+                      </p>
+                    </div>
+
+                    {/* Suggestion Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {allSuggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleSearch(suggestion)}
+                          className="group p-5 text-left bg-white hover:bg-blue-50 border-2 border-slate-200 hover:border-blue-500 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-lg"
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+                              {index % 3 === 0 ? (
+                                <TrendingUp className="w-6 h-6 text-blue-800" />
+                              ) : index % 3 === 1 ? (
+                                <BarChart3 className="w-6 h-6 text-blue-800" />
+                              ) : (
+                                <LineChart className="w-6 h-6 text-blue-800" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-base font-medium text-slate-900 group-hover:text-blue-900 transition-colors">
+                                {suggestion}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                Click to analyze
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-lg font-medium text-slate-900 mb-2">
-                  No results yet
-                </h3>
-                <p className="text-slate-600">
-                  Search for data to see visualizations
-                </p>
-              </div>
-            ) : (
+              ): (
               <div className="max-w-6xl mx-auto">
                 <div className="flex items-center justify-between mb-6">
                   <div>
