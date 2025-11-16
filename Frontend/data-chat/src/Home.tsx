@@ -582,7 +582,7 @@ export default function App() {
                     </div>
 
                     {/* Error State */}
-                    {errorMessage && !isLoading && (
+                    {errorMessage && !isLoading && expanded && (
                         <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl max-w-4xl mx-auto">
                             <p className="text-sm text-red-900">{errorMessage}</p>
                         </div>
