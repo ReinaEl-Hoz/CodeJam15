@@ -95,12 +95,14 @@ def get_default_table_descriptions() -> Dict[str, str]:
     """Get default table descriptions based on the database structure"""
     return {
         "customers": "Customer information",
-        "products": "Product catalog with pricing",
-        "orders": "Customer orders and transactions",
-        "departments": "Company departments",
-        "payroll": "Employee payroll information",
+        "daily_revenue": "Daily revenue",
         "expenses": "Company expenses by department",
-        "daily_revenue": "Daily revenue and tax summaries"
+        "marketing": "Marketing campaigns and promotions",
+        "order_items": "Order items and their details",
+        "orders": "Customer orders and transactions",
+        "payroll": "Employee payroll information",
+        "products": "Product catalog with pricing and discounts",
+        "profit_forecast": "Profit forecast for the month"
     }
 
 def get_default_column_descriptions() -> Dict[str, Dict[str, str]]:
@@ -109,44 +111,82 @@ def get_default_column_descriptions() -> Dict[str, Dict[str, str]]:
         "customers": {
             "customer_id": "Unique customer ID",
             "name": "Customer name",
-            "email": "Email address",
-            "country": "Customer country"
+            "segment": "Customer segment",
+            "industry": "Customer industry",
+            "country": "Customer country",
+            "created_at": "Date customer was created"
         },
-        "products": {
-            "product_id": "Unique product ID",
-            "product_name": "Product name",
-            "price": "Product price in USD"
-        },
-        "orders": {
-            "order_id": "Unique order ID",
-            "customer_id": "Customer who placed order",
-            "product_id": "Product ordered",
-            "quantity": "Quantity ordered",
-            "revenue": "Order revenue in USD",
-            "tax": "Tax amount in USD"
-        },
-        "departments": {
-            "department_id": "Unique department ID",
-            "department_name": "Department name"
-        },
-        "payroll": {
-            "employee_id": "Unique employee ID",
-            "department_id": "Department the employee belongs to",
-            "name": "Employee name",
-            "salary": "Employee salary in USD"
+        "daily_revenue": {
+            "date": "Date of the revenue",
+            "total_revenue": "Total revenue for the day in USD"
         },
         "expenses": {
             "expense_id": "Unique expense ID",
-            "department_id": "Department that incurred the expense",
-            "description": "Expense description",
+            "date": "Date of expense",
+            "category": "Expense category",
+            "department": "Department that incurred the expense",
             "amount": "Expense amount in USD",
-            "date": "Date of expense"
+            "description": "Expense description",
+            "month": "Month of the expense"
         },
-        "daily_revenue": {
-            "day_id": "Day identifier",
-            "total_revenue": "Total revenue for the day in USD",
-            "total_tax": "Total tax for the day in USD",
-            "date": "Date of the revenue"
+        "marketing": {
+            "date": "Date of the marketing campaign",
+            "channel": "Marketing channel",
+            "campaign": "Marketing campaign name",
+            "spend": "Marketing spend in USD",
+            "impressions": "Marketing impressions",
+            "clicks": "Marketing clicks",
+            "conversions": "Marketing conversions",
+            "revenue": "Marketing revenue in USD"
+        },
+        "order_items": {
+            "order_item_id": "Order item ID",
+            "order_id": "Order ID",
+            "product_id": "Product ID",
+            "quantity": "Quantity ordered",
+            "unit_price": "Price per item in USD",
+            "discount": "Discount amount in USD",
+            "line_total": "Total line amount in USD"
+        },
+        "orders": {
+            "order_id": "Unique order ID",
+            "order_date": "Date of the order",
+            "customer_id": "Customer who placed order",
+            "region": "Region of the order",
+            "segment": "Segment of the customer",
+            "subtotal": "Subtotal of the order in USD",
+            "tax": "Tax amount in USD",
+            "total_amount": "Total amount of the order in USD",
+            "cogs": "Cost of goods sold in USD",
+            "profit": "Profit of the order in USD",
+            "month": "Month of the order"
+        },
+        "payroll": {
+            "employee_id": "Unique employee ID",
+            "employee_name": "Employee name",
+            "department": "Department the employee belongs to",
+            "role": "Employee role",
+            "base_salary": "Employee base salary in USD",
+            "bonus_target": "Employee bonus target in USD",
+            "hire_date": "Date the employee was hired",
+            "employment_type": "Employee employment type"
+        },
+         "products": {
+            "product_id": "Unique product ID",
+            "product_name": "Product name",
+            "category": "Product category",
+            "subcategory": "Product subcategory",
+            "sku": "Product SKU",
+            "base_cost": "Product base cost in USD"
+        },
+        "profit_forecast": {
+            "month_start": "Month start date of the profit forecast",
+            "revenue": "Revenue in USD",
+            "cogs": "Cost of goods sold in USD",
+            "opex": "Operating expenses in USD",
+            "profit": "Profit in USD",
+            "budget_revenue": "Budget revenue in USD",
+            "budget_profit": "Budget profit in USD"
         }
     }
 
@@ -170,6 +210,8 @@ def get_all_tables_info(db_path: str = "codejam_15.db"):
 
 if __name__ == "__main__":
     # Example usage - get schema with descriptions
+    get_all_tables_info()
     schema = get_database_schema_with_descriptions()
+
     import json
-    print(json.dumps(schema, indent=2))
+    print(json.dumps(schema, indent=2)) 
