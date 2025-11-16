@@ -563,8 +563,7 @@ export default function App() {
                                 </div>
 
 
-                                <div className='flex-grow'>
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                <div className='flex-grow'> 
                                     <input
                                         type="text"
                                         value={inputValue}
