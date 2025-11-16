@@ -55,7 +55,7 @@ def clean_json_block(text: str) -> str:
 class GeminiSQLWrapper:
     """Wrapper for Gemini to generate SQL queries with chart metadata"""
     
-    def __init__(self, api_key: str = None, model: str = "gemini-2.0-flash-lite"):
+    def __init__(self, api_key: str = None, model: str = "gemini-2.5-flash"):
         self.api_key = api_key or os.getenv("API_KEY")
         if not self.api_key:
             raise ValueError("API key required")

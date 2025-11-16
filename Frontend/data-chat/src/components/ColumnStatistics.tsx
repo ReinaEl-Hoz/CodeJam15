@@ -70,27 +70,27 @@ export function ColumnStatistics({ column }: ColumnStatisticsProps) {
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">Mean</div>
-                <div>{column.stats.mean.toLocaleString()}</div>
+                <div>{column.stats.mean != null ? column.stats.mean.toLocaleString() : 'N/A'}</div>
               </div>
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">Median</div>
-                <div>{column.stats.median.toLocaleString()}</div>
+                <div>{column.stats.median != null ? column.stats.median.toLocaleString() : 'N/A'}</div>
               </div>
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">Std Dev</div>
-                <div>{column.stats.std.toLocaleString()}</div>
+                <div>{column.stats.std != null ? column.stats.std.toLocaleString() : 'N/A'}</div>
               </div>
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">Min</div>
-                <div>{column.stats.min.toLocaleString()}</div>
+                <div>{column.stats.min != null ? column.stats.min.toLocaleString() : 'N/A'}</div>
               </div>
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">Q25</div>
-                <div>{column.stats.q25.toLocaleString()}</div>
+                <div>{column.stats.q25 != null ? column.stats.q25.toLocaleString() : 'N/A'}</div>
               </div>
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">Q75</div>
-                <div>{column.stats.q75.toLocaleString()}</div>
+                <div>{column.stats.q75 != null ? column.stats.q75.toLocaleString() : 'N/A'}</div>
               </div>
             </div>
           </div>

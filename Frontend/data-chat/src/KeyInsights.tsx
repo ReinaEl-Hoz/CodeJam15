@@ -51,7 +51,10 @@ export default function KeyInsights() {
             setInsightsLoading(true);
             try {
                 console.log("Generating NL insights...");
+                console.log("Insights data being sent:", insightsData);
+                console.log("SQL query being sent:", sqlQuery);
                 const insightsText = await generateInsights(insightsData as KeyInsightsData, sqlQuery);
+                console.log("API call successful, received insights text");
                 console.log("=".repeat(70));
                 console.log("NATURAL LANGUAGE INSIGHTS (from frontend):");
                 console.log("=".repeat(70));
@@ -61,36 +64,77 @@ export default function KeyInsights() {
                 // Parse insights (format: "INSIGHT 1: ... INSIGHT 2: ... INSIGHT 3: ...")
                 console.log("Raw insights text:", insightsText);
                 console.log("Insights text length:", insightsText.length);
+                console.log("Type of insightsText:", typeof insightsText);
                 
                 // Try multiple parsing strategies
                 let parsedInsights: string[] = [];
                 
-                // Strategy 1: Match pattern "INSIGHT X: ..." (captures everything until next INSIGHT or end)
-                const insightMatches = insightsText.match(/INSIGHT \d+:\s*(.+?)(?=INSIGHT \d+:|$)/gis);
-                if (insightMatches && insightMatches.length > 0) {
-                    parsedInsights = insightMatches.map(match => {
-                        // Remove the "INSIGHT X:" part and trim
-                        return match.replace(/^INSIGHT \d+:\s*/i, '').trim();
-                    });
-                } else {
-                    // Strategy 2: Split by pattern and filter
-                    parsedInsights = insightsText
-                        .split(/INSIGHT \d+:/i)
-                        .filter(insight => insight.trim().length > 0)
-                        .map(insight => insight.trim());
-                    
-                    // If first item is empty or very short (text before first "INSIGHT 1:"), remove it
-                    if (parsedInsights.length > 0 && parsedInsights[0].length < 10) {
-                        parsedInsights = parsedInsights.slice(1);
-                    }
+                if (!insightsText || insightsText.trim().length === 0) {
+                    console.warn("Insights text is empty!");
+                    setNlInsights([]);
+                    return;
                 }
                 
-                console.log("Parsed insights:", parsedInsights);
-                console.log("Parsed insights length:", parsedInsights.length);
+                // Strategy 1: Use regex with dotAll flag to match across newlines
+                const insightPattern = /INSIGHT\s+\d+:\s*([\s\S]+?)(?=INSIGHT\s+\d+:|$)/gi;
+                const matches = [...insightsText.matchAll(insightPattern)];
+                
+                if (matches && matches.length > 0) {
+                    parsedInsights = matches.map(match => match[1].trim()).filter(insight => insight.length > 0);
+                    console.log("Strategy 1 (regex matchAll) found:", parsedInsights.length, "insights");
+                }
+                
+                // Strategy 2: If regex didn't work, try splitting
+                if (parsedInsights.length === 0) {
+                    const splitInsights = insightsText.split(/INSIGHT\s+\d+:/i);
+                    parsedInsights = splitInsights
+                        .map(insight => insight.trim())
+                        .filter(insight => insight.length > 0 && !insight.match(/^(INSIGHT|FORMAT|TASK)/i));
+                    
+                    // Remove first item if it's just preamble text
+                    if (parsedInsights.length > 0 && parsedInsights[0].length < 20) {
+                        parsedInsights = parsedInsights.slice(1);
+                    }
+                    console.log("Strategy 2 (split) found:", parsedInsights.length, "insights");
+                }
+                
+                // Strategy 3: Try line-by-line parsing if still empty
+                if (parsedInsights.length === 0) {
+                    const lines = insightsText.split('\n');
+                    let currentInsight = '';
+                    let insightNumber = 0;
+                    
+                    for (const line of lines) {
+                        if (line.match(/INSIGHT\s+\d+:/i)) {
+                            if (currentInsight.trim()) {
+                                parsedInsights.push(currentInsight.trim());
+                            }
+                            currentInsight = line.replace(/INSIGHT\s+\d+:\s*/i, '').trim();
+                            insightNumber++;
+                        } else if (currentInsight && line.trim()) {
+                            currentInsight += ' ' + line.trim();
+                        }
+                    }
+                    if (currentInsight.trim()) {
+                        parsedInsights.push(currentInsight.trim());
+                    }
+                    console.log("Strategy 3 (line-by-line) found:", parsedInsights.length, "insights");
+                }
+                
+                console.log("Final parsed insights:", parsedInsights);
+                console.log("Final parsed insights length:", parsedInsights.length);
+                
+                if (parsedInsights.length === 0) {
+                    console.error("Failed to parse any insights from text:", insightsText);
+                }
                 
                 setNlInsights(parsedInsights);
             } catch (error) {
                 console.error("Error generating NL insights:", error);
+                console.error("Error details:", {
+                    message: error instanceof Error ? error.message : String(error),
+                    stack: error instanceof Error ? error.stack : undefined
+                });
                 setNlInsights([]);
             } finally {
                 setInsightsLoading(false);
@@ -149,12 +193,16 @@ export default function KeyInsights() {
                   <TabsTrigger value="columns" className="data-[state=active]:bg-blue-800 data-[state=active]:text-white">
                       Column Statistics
                   </TabsTrigger>
-                  <TabsTrigger value="correlations" className="data-[state=active]:bg-blue-800 data-[state=active]:text-white">
-                      Correlations
-                  </TabsTrigger>
-                  <TabsTrigger value="interactions" className="data-[state=active]:bg-blue-800 data-[state=active]:text-white">
-                      Interactions
-                  </TabsTrigger>
+                  {(data.correlations && data.correlations.length > 0) || data.correlation_matrix ? (
+                      <>
+                          <TabsTrigger value="correlations" className="data-[state=active]:bg-blue-800 data-[state=active]:text-white">
+                              Correlations
+                          </TabsTrigger>
+                          <TabsTrigger value="interactions" className="data-[state=active]:bg-blue-800 data-[state=active]:text-white">
+                              Interactions
+                          </TabsTrigger>
+                      </>
+                  ) : null}
                   <TabsTrigger value="insights" className="data-[state=active]:bg-blue-800 data-[state=active]:text-white">
                       Insights
                   </TabsTrigger>
@@ -192,20 +240,24 @@ export default function KeyInsights() {
               </div>
           </TabsContent>
 
-          <TabsContent value="correlations" className="space-y-6">
-              {data.correlation_matrix && <CorrelationMatrix matrix={data.correlation_matrix} />}
-              {data.correlations && <TopCorrelations correlations={data.correlations} />}
-          </TabsContent>
+          {(data.correlations && data.correlations.length > 0) || data.correlation_matrix ? (
+              <>
+                  <TabsContent value="correlations" className="space-y-6">
+                      {data.correlation_matrix && <CorrelationMatrix matrix={data.correlation_matrix} />}
+                      {data.correlations && <TopCorrelations correlations={data.correlations} />}
+                  </TabsContent>
 
-          <TabsContent value="interactions" className="space-y-6">
-              {data.interactions && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {data.interactions.map((interaction, index) => (
-                      <InteractionPlot key={index} interaction={interaction} />
-                      ))}
-                  </div>
-              )}
-          </TabsContent>
+                  <TabsContent value="interactions" className="space-y-6">
+                      {data.interactions && (
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              {data.interactions.map((interaction, index) => (
+                              <InteractionPlot key={index} interaction={interaction} />
+                              ))}
+                          </div>
+                      )}
+                  </TabsContent>
+              </>
+          ) : null}
 
           <TabsContent value="insights" className="space-y-6">
               <InsightsDisplay insights={nlInsights} loading={insightsLoading} />
