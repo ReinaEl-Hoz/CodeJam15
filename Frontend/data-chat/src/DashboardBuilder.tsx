@@ -17,7 +17,7 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-
+import Squares from './components/Squares';
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 // ---------- Types ----------
@@ -422,17 +422,17 @@ const DashboardBuilder: React.FC = () => {
 
     // Find all Plotly chart containers
     const chartContainers = dashboardRef.current.querySelectorAll('[data-chart-id]');
-    
+
     for (const container of Array.from(chartContainers)) {
       try {
         // Find the Plotly div (has class 'js-plotly-plot')
         const plotlyDiv = container.querySelector('.js-plotly-plot') as HTMLElement;
-        
+
         if (plotlyDiv && (window as any).Plotly) {
           // Get the current dimensions
           const width = plotlyDiv.offsetWidth;
           const height = plotlyDiv.offsetHeight;
-          
+
           // Convert to image
           const imgData = await (window as any).Plotly.toImage(plotlyDiv, {
             format: 'png',
@@ -440,20 +440,20 @@ const DashboardBuilder: React.FC = () => {
             height: height,
             scale: 2, // Higher quality
           });
-          
+
           // Create an img element
           const img = document.createElement('img');
           img.src = imgData;
           img.style.width = '100%';
           img.style.height = '100%';
           img.style.objectFit = 'contain';
-          
+
           // Replace the Plotly chart with the image temporarily
           const parent = plotlyDiv.parentElement;
           if (parent) {
             plotlyDiv.style.display = 'none';
             parent.appendChild(img);
-            
+
             // Store reference for cleanup
             (container as any).__tempImg = img;
             (container as any).__plotlyDiv = plotlyDiv;
@@ -469,18 +469,18 @@ const DashboardBuilder: React.FC = () => {
     if (!dashboardRef.current) return;
 
     const chartContainers = dashboardRef.current.querySelectorAll('[data-chart-id]');
-    
+
     for (const container of Array.from(chartContainers)) {
       const tempImg = (container as any).__tempImg;
       const plotlyDiv = (container as any).__plotlyDiv;
-      
+
       if (tempImg && plotlyDiv) {
         // Remove the temporary image
         tempImg.remove();
-        
+
         // Show the Plotly chart again
         plotlyDiv.style.display = '';
-        
+
         // Clean up references
         delete (container as any).__tempImg;
         delete (container as any).__plotlyDiv;
@@ -500,13 +500,13 @@ const DashboardBuilder: React.FC = () => {
 
     try {
       const node = dashboardRef.current;
-      
+
       // Convert Plotly charts to static images first
       await convertPlotlyChartsToImages();
-      
+
       // Wait a bit for images to load
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       const canvas = await html2canvas(node, {
         scale: 2,
         useCORS: true,
@@ -544,13 +544,13 @@ const DashboardBuilder: React.FC = () => {
 
     try {
       const node = dashboardRef.current;
-      
+
       // Convert Plotly charts to static images first
       await convertPlotlyChartsToImages();
-      
+
       // Wait a bit for images to load
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       const canvas = await html2canvas(node, {
         scale: 2,
         useCORS: true,
@@ -739,10 +739,19 @@ const DashboardBuilder: React.FC = () => {
       </div>
 
       {/* Main Canvas */}
-      <div className="flex-1 overflow-auto p-8">
+      <div className="relative flex-1 overflow-auto p-8">
+  <div className="absolute inset-0 z-0 pointer-events-none">
+    <Squares
+      speed={0.5}
+      squareSize={40}
+      direction='diagonal'
+      borderColor='#fff'
+      hoverFillColor='#fff'
+    />
+  </div>
         <div
           ref={dashboardRef}
-          className="bg-white rounded-lg shadow-xl p-6 min-h-full"
+          className="bg-white rounded-lg shadow-xl p-6 min-h-full relative z-10"
           onClick={() => setSelectedItemId(null)}
         >
           {items.length === 0 ? (
@@ -801,9 +810,10 @@ const DashboardBuilder: React.FC = () => {
               ))}
             </ResponsiveGridLayout>
           )}
+
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
