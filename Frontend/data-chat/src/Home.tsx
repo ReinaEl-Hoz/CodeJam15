@@ -177,6 +177,7 @@ export default function App() {
         // Check if database is selected
         if (!selectedDatabase) {
             setErrorMessage('Please select a dataset before searching.');
+            setExpanded(true);
             return;
         }
         // Hide suggestions when searching
@@ -628,7 +629,7 @@ export default function App() {
                         <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl max-w-4xl mx-auto">
                             <p className="text-sm text-red-900">{errorMessage}</p>
                         </div>
-                    )}
+                        )}
 
                     {!expanded && (
                         <div>
