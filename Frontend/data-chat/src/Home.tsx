@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Search,
     BarChart3,
     LineChart,
     TrendingUp,
@@ -65,9 +64,8 @@ export default function App() {
 
     const availableDatabases = [
         { id: 'main', name: 'Acme Corp – Analytics Warehouse' },
-
-
     ];
+    
     // Predefined suggestions
     const allSuggestions = [
         'Show me daily revenue trends',
@@ -523,46 +521,55 @@ export default function App() {
                     <div className="flex-1 search-container">
                         <div className="">
                             <div className="flex items-center justify-center max-w-5xl mx-auto gap-3">
-                                <div className='flex flex-row gap-2 items-center'>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowDatabaseDropdown(!showDatabaseDropdown)}
-                                        className="h-[56px] px-4 pr-10 bg-blue-800 text-white border-2 border-blue-800 rounded-2xl text-sm font-medium focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-lg hover:shadow-xl hover:bg-blue-700 cursor-pointer whitespace-nowrap"
+                                <div className="relative">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowDatabaseDropdown(!showDatabaseDropdown)}
+                                    className="h-[56px] px-4 pr-10 bg-blue-800 text-white border-2 border-blue-800 rounded-2xl text-sm font-medium focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-lg hover:shadow-xl hover:bg-blue-700 cursor-pointer whitespace-nowrap"
+                                  >
+                                    {selectedDatabase
+                                      ? availableDatabases.find(db => db.id === selectedDatabase)?.name
+                                      : 'Select dataset'}
+                                  </button>
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <svg
+                                      className="w-4 h-4 text-white"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
                                     >
-                                        {selectedDatabase
-                                            ? availableDatabases.find(db => db.id === selectedDatabase)?.name
-                                            : 'Select dataset'}
-                                    </button>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 9l-7 7-7-7"
+                                      />
+                                    </svg>
+                                  </div>
+
+                                  {/* Custom Dropdown Menu */}
+                                  {showDatabaseDropdown && (
+                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-20">
+                                      {availableDatabases.map((db) => (
+                                        <button
+                                          key={db.id}
+                                          type="button"
+                                          onClick={() => {
+                                            setSelectedDatabase(db.id);
+                                            setShowDatabaseDropdown(false);
+                                          }}
+                                          className={`w-full text-left px-4 py-3 text-sm transition-all ${
+                                            selectedDatabase === db.id
+                                              ? 'bg-blue-50 text-blue-800 font-semibold'
+                                              : 'text-slate-700 hover:bg-blue-50'
+                                          }`}
+                                        >
+                                          {db.name}
+                                        </button>
+                                      ))}
                                     </div>
-
-                                    {/* Custom Dropdown Menu */}
-                                    {showDatabaseDropdown && (
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-20">
-                                            {availableDatabases.map((db) => (
-                                                <button
-                                                    key={db.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSelectedDatabase(db.id);
-                                                        setShowDatabaseDropdown(false);
-                                                    }}
-                                                    className={`w-full text-left px-4 py-3 text-sm transition-all ${selectedDatabase === db.id
-                                                        ? 'bg-blue-50 text-blue-800 font-semibold'
-                                                        : 'text-slate-700 hover:bg-blue-50'
-                                                        }`}
-                                                >
-                                                    {db.name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                                  )}
                                 </div>
-
-
                                 <div className='flex-grow'> 
                                     <input
                                         type="text"
