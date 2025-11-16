@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { OverviewCards } from "./components/OverviewCards";
 import { ColumnStatistics } from "./components/ColumnStatistics";
@@ -6,110 +8,44 @@ import { InteractionPlot } from "./components/InteractionPlot";
 import { TopCorrelations } from "./components/TopCorrelations";
 import { type KeyInsightsData } from "./types/data";
 import { BarChart3 } from "lucide-react";
+import { getKeyInsights } from "./services/api";
 import "./KeyInsights.css";
 
-const sampleData: KeyInsightsData = {
-  overview: {
-    row_count: 1000,
-    column_count: 8,
-    memory_usage: 2.5,
-    duplicate_rows: 15,
-  },
-  columns: [
-    {
-      name: "age",
-      type: "int64",
-      missing: 5,
-      missing_percent: 0.5,
-      unique: 45,
-      min_samples: ["18", "19", "20", "21", "22"],
-      max_samples: ["65", "64", "63", "62", "61"],
-      stats: {
-        mean: 35.2,
-        median: 34,
-        std: 12.3,
-        min: 18,
-        max: 65,
-        q25: 27,
-        q75: 45,
-      },
-      histogram: {
-        counts: [
-          45, 78, 120, 145, 160, 155, 140, 125, 95, 67, 45, 32, 20, 15, 10, 8,
-          5, 3, 2, 1,
-        ],
-        bins: [
-          18, 20.35, 22.7, 25.05, 27.4, 29.75, 32.1, 34.45, 36.8, 39.15, 41.5,
-          43.85, 46.2, 48.55, 50.9, 53.25, 55.6, 57.95, 60.3, 62.65, 65,
-        ],
-      },
-    },
-    {
-      name: "revenue",
-      type: "float64",
-      missing: 0,
-      missing_percent: 0,
-      unique: 876,
-      min_samples: ["10000", "10250", "10500", "10750", "11000"],
-      max_samples: ["125000", "124500", "124000", "123500", "123000"],
-      stats: {
-        mean: 52340.5,
-        median: 48200,
-        std: 23450.8,
-        min: 10000,
-        max: 125000,
-        q25: 35000,
-        q75: 68000,
-      },
-      histogram: {
-        counts: [
-          25, 48, 89, 124, 145, 167, 156, 132, 98, 72, 54, 38, 24, 16, 8, 4, 2,
-          1, 1, 1,
-        ],
-        bins: [
-          10000, 15750, 21500, 27250, 33000, 38750, 44500, 50250, 56000, 61750,
-          67500, 73250, 79000, 84750, 90500, 96250, 102000, 107750, 113500,
-          119250, 125000,
-        ],
-      },
-    },
-  ],
-  correlations: [
-    { col1: "age", col2: "revenue", correlation: 0.72 },
-    { col1: "age", col2: "experience", correlation: 0.85 },
-  ],
-  correlation_matrix: {
-    columns: ["age", "revenue", "experience", "satisfaction"],
-    data: [
-      [1.0, 0.72, 0.85, 0.45],
-      [0.72, 1.0, 0.68, 0.55],
-      [0.85, 0.68, 1.0, 0.52],
-      [0.45, 0.55, 0.52, 1.0],
-    ],
-  },
-  interactions: [
-    {
-      col1: "age",
-      col2: "experience",
-      correlation: 0.85,
-      data: Array.from({ length: 100 }, () => ({
-        x: Math.random() * 47 + 18,
-        y: Math.random() * 30 + 1,
-      })),
-    },
-    {
-      col1: "age",
-      col2: "revenue",
-      correlation: 0.72,
-      data: Array.from({ length: 100 }, () => ({
-        x: Math.random() * 47 + 18,
-        y: Math.random() * 115000 + 10000,
-      })),
-    },
-  ],
-};
-
 export default function KeyInsights() {
+  const { reportId } = useParams<{ reportId: string }>();
+  const [data, setData] = useState<KeyInsightsData | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!reportId) return;
+
+      // reportId is the SQL query (URL encoded)
+      const sqlQuery = decodeURIComponent(reportId);
+      console.log("Calling getKeyInsights with query:", sqlQuery);
+
+      // Call getKeyInsights (frontend) -> calls /api/key-insights -> calls get_key_insights (backend)
+      const insightsData = await getKeyInsights(sqlQuery);
+      console.log("Received insights data:", insightsData);
+      console.log("Correlations:", insightsData.correlations);
+      console.log("Correlation matrix:", insightsData.correlation_matrix);
+      setData(insightsData as KeyInsightsData);
+    };
+
+    fetchData();
+  }, [reportId]);
+
+  // Show loading state while data is being fetched
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading insights...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
@@ -146,32 +82,50 @@ export default function KeyInsights() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8">
-            <OverviewCards overview={sampleData.overview} />
+            <OverviewCards overview={data.overview} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <TopCorrelations correlations={sampleData.correlations} />
-              <CorrelationMatrix matrix={sampleData.correlation_matrix} />
+              {data.correlations && data.correlations.length > 0 ? (
+                <TopCorrelations correlations={data.correlations} />
+              ) : (
+                <div className="bg-white rounded-lg p-6 border border-slate-200">
+                  <p className="text-sm text-slate-600">
+                    Correlations require at least 2 numeric columns in your query.
+                  </p>
+                </div>
+              )}
+              {data.correlation_matrix ? (
+                <CorrelationMatrix matrix={data.correlation_matrix} />
+              ) : (
+                <div className="bg-white rounded-lg p-6 border border-slate-200">
+                  <p className="text-sm text-slate-600">
+                    Correlation matrix requires at least 2 numeric columns in your query.
+                  </p>
+                </div>
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="columns" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {sampleData.columns.map((column) => (
+              {data.columns.map((column) => (
                 <ColumnStatistics key={column.name} column={column} />
               ))}
             </div>
           </TabsContent>
 
           <TabsContent value="correlations" className="space-y-6">
-            <CorrelationMatrix matrix={sampleData.correlation_matrix} />
-            <TopCorrelations correlations={sampleData.correlations} />
+            {data.correlation_matrix && <CorrelationMatrix matrix={data.correlation_matrix} />}
+            {data.correlations && <TopCorrelations correlations={data.correlations} />}
           </TabsContent>
 
           <TabsContent value="interactions" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {sampleData.interactions.map((interaction, index) => (
-                <InteractionPlot key={index} interaction={interaction} />
-              ))}
-            </div>
+            {data.interactions && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {data.interactions.map((interaction, index) => (
+                  <InteractionPlot key={index} interaction={interaction} />
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </main>

@@ -4,6 +4,19 @@ import duckdb
 from ydata_profiling import ProfileReport
 
 
+def to_python_type(obj):
+    """Convert numpy types to native Python types for JSON serialization"""
+    if isinstance(obj, (np.integer, np.int64, np.int32)):
+        return int(obj)
+    if isinstance(obj, (np.floating, np.float64, np.float32)):
+        return float(obj)
+    if isinstance(obj, dict):
+        return {k: to_python_type(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [to_python_type(v) for v in obj]
+    return obj
+
+
 def get_key_insights(query: str) -> dict:
     con = duckdb.connect("codejam_15.db")
     df = con.execute(query).fetchdf()
@@ -102,6 +115,8 @@ def get_key_insights(query: str) -> dict:
     # CORRELATION MATRIX
     # -----------------------------
     numeric_cols = df.select_dtypes(include=["number"]).columns
+    print(f"DEBUG: Found {len(numeric_cols)} numeric columns: {list(numeric_cols)}")
+    
     if len(numeric_cols) > 1:
         corr_matrix = df[numeric_cols].corr()
 
@@ -110,8 +125,8 @@ def get_key_insights(query: str) -> dict:
             "data": corr_matrix.values.tolist(),
         }
 
-        # Strong correlations
-        insights["correlations"] = [
+        # Strong correlations (abs > 0.5)
+        strong_corrs = [
             {
                 "col1": col1,
                 "col2": col2,
@@ -121,6 +136,24 @@ def get_key_insights(query: str) -> dict:
             for col2 in numeric_cols
             if col1 < col2 and abs(corr_matrix.loc[col1, col2]) > 0.5
         ]
+        
+        # Also include ALL correlations for display (not just strong ones)
+        insights["correlations"] = [
+            {
+                "col1": col1,
+                "col2": col2,
+                "correlation": float(corr_matrix.loc[col1, col2]),
+            }
+            for col1 in numeric_cols
+            for col2 in numeric_cols
+            if col1 < col2
+        ]
+        
+        print(f"DEBUG: Generated {len(insights['correlations'])} correlations")
+    else:
+        print(f"DEBUG: Not enough numeric columns ({len(numeric_cols)}) for correlations")
+        insights["correlation_matrix"] = None
+        insights["correlations"] = []
 
     # -----------------------------
     # TOP INTERACTIONS (scatter data)
@@ -152,4 +185,4 @@ def get_key_insights(query: str) -> dict:
                     ],
                 })
 
-    return insights
+    return to_python_type(insights)

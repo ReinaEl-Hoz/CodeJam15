@@ -79,3 +79,78 @@ export const sendChatMessage = async (userInput: string): Promise<ChatResponse> 
   const result: ChatResponse = await response.json();
   return result;
 };
+
+
+export interface KeyInsightsData {
+  overview: {
+    row_count: number;
+    column_count: number;
+    memory_usage: number;
+    duplicate_rows: number;
+  };
+  columns: Array<{
+    name: string;
+    type: string;
+    missing: number;
+    missing_percent: number;
+    unique: number;
+    min_samples: string[];
+    max_samples: string[];
+    stats: {
+      mean?: number;
+      median?: number;
+      std?: number;
+      min?: number;
+      max?: number;
+      q25?: number;
+      q75?: number;
+    };
+    histogram?: {
+      counts: number[];
+      bins: number[];
+    };
+  }>;
+  correlations?: Array<{
+    col1: string;
+    col2: string;
+    correlation: number;
+  }>;
+  correlation_matrix?: {
+    columns: string[];
+    data: number[][];
+  };
+  interactions?: Array<{
+    col1: string;
+    col2: string;
+    correlation: number;
+    data: Array<{ x: number; y: number }>;
+  }>;
+}
+
+export interface KeyInsightsResponse {
+  success: boolean;
+  data?: KeyInsightsData;
+  error?: string;
+}
+
+export const getKeyInsights = async (query: string): Promise<KeyInsightsData> => {
+  const url = `${API_BASE_URL}/key-insights?query=${encodeURIComponent(query)}`;
+  console.log("API: Fetching from", url);
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  console.log("API: Response status", response.status);
+  const result: KeyInsightsResponse = await response.json();
+  console.log("API: Response data", result);
+
+  if (!result.success || !result.data) {
+    throw new Error(result.error || 'Failed to fetch key insights');
+  }
+
+  return result.data;
+};

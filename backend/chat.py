@@ -116,7 +116,7 @@ Return ONLY a JSON object with this EXACT structure:
   "queries": [
     {{
       "name": "descriptive_name_snake_case",
-      "sql": "SELECT ... FROM ... WHERE ... ;",
+      "sql": "SELECT * FROM table_name WHERE condition ORDER BY column_name;",
       "suggested_chart": {{
         "type": "line" OR "bar" ONLY,
         "x": "column_name_for_x_axis",
@@ -138,6 +138,8 @@ Rules:
 - Generate valid SQL with proper syntax
 - Chart type MUST be "line" (for time series) or "bar" (for categories) ONLY
 - Use DuckDB syntax for the SQL query
+- CRITICAL: Always use SELECT * FROM table (not SELECT specific columns)
+- If the user requests aggregated data (sums, counts, etc.), select as many columns as possible
 - When comparing time data, make sure the types are compatible
 - x,y field MUST be a single string column name, NEVER an array
 - If user asks about unrelated topics, return error JSON

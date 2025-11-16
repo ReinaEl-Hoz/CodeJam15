@@ -697,7 +697,7 @@ export default function App() {
                             onClick={e => e.stopPropagation()}
                           >
                         <button
-                              onClick={() => navigate(`/report/${chart.id}`)}
+                              onClick={() => navigate(`/report/${encodeURIComponent(chart.insight || '')}`)}
                               className="flex items-center gap-1 px-4 py-1.5 bg-blue-800 hover:bg-blue-700 text-white rounded-2xl transition-all text-xs font-semibold shadow-lg hover:shadow-xl whitespace-nowrap text-base"
                             >
                               <TrendingUp className="w-4 h-4" />

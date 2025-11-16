@@ -6,9 +6,9 @@ export interface KeyInsightsData {
     duplicate_rows: number;
   };
   columns: ColumnInfo[];
-  correlations: CorrelationPair[];
-  correlation_matrix: CorrelationMatrix;
-  interactions: Interaction[];
+  correlations?: CorrelationPair[];
+  correlation_matrix?: CorrelationMatrix;
+  interactions?: Interaction[];
 }
 
 export interface ColumnInfo {

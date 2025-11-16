@@ -328,9 +328,31 @@ def chat():
             'error': error_msg
         }), 500
     
-@api.get("/key-insights")
-def profile_report(query: str):
-    return jsonify(get_key_insights(query))
+@api.route('/key-insights', methods=['GET'])
+def profile_report():
+    try:
+        # Get query from query parameter
+        query = request.args.get('query')
+        
+        if not query:
+            return jsonify({
+                'success': False,
+                'error': 'query parameter is required'
+            }), 400
+        
+        # Call get_key_insights with the query
+        insights = get_key_insights(query)
+        
+        return jsonify({
+            'success': True,
+            'data': insights
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 if __name__ == "__main__":
     print(get_key_insights("SELECT date, total_revenue FROM daily_revenue ORDER BY date"))
