@@ -57,8 +57,15 @@ export default function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
   const [copiedChartId, setCopiedChartId] = useState<string | null>(null);
+  const [selectedDatabase, setSelectedDatabase] = useState<string>('');
+  const [showDatabaseDropdown, setShowDatabaseDropdown] = useState(false);
   const navigate = useNavigate();
 
+  const availableDatabases = [
+  { id: 'main', name: 'Acme Corp – Analytics Warehouse'},
+  
+
+];
   // Predefined suggestions
   const allSuggestions = [
     'Show me daily revenue trends',
@@ -302,6 +309,21 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Close database dropdown when clicking outside
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.relative') || target.closest('.search-container')) {
+          setShowDatabaseDropdown(false);
+        }
+      };
+
+      if (showDatabaseDropdown) {
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }
+    }, [showDatabaseDropdown]);
+
   const downloadChart = (chart: ChartData, chartId: string) => {
     const plotlyDiv = document.getElementById(chartId);
     if (plotlyDiv) {
@@ -455,7 +477,46 @@ export default function App() {
         {/* iOS-style Siri Search Header */}
         <div className="p-8 pb-6 bg-gradient-to-b from-slate-50 to-white border-b border-slate-200">
           {/* Flex Container for Search Bar and Button */}
-          <div className="flex items-center justify-center max-w-4xl mx-auto gap-4"> 
+          <div className="flex items-center justify-center max-w-5xl mx-auto gap-3"> 
+            <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowDatabaseDropdown(!showDatabaseDropdown)}
+              className="h-[56px] px-4 pr-10 bg-blue-800 text-white border-2 border-blue-800 rounded-2xl text-sm font-medium focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-lg hover:shadow-xl hover:bg-blue-700 cursor-pointer whitespace-nowrap"
+            >
+              {selectedDatabase 
+                ? availableDatabases.find(db => db.id === selectedDatabase)?.name 
+                : 'Select dataset'}
+            </button>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {/* Custom Dropdown Menu */}
+            {showDatabaseDropdown && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-20">
+                {availableDatabases.map((db) => (
+                  <button
+                    key={db.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDatabase(db.id);
+                      setShowDatabaseDropdown(false);
+                    }}
+                    className={`w-full text-left px-4 py-3 text-sm transition-all ${
+                      selectedDatabase === db.id
+                        ? 'bg-blue-50 text-blue-800 font-semibold'
+                        : 'text-slate-700 hover:bg-blue-50'
+                    }`}
+                  >
+                    {db.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
             <div className="flex-1 search-container"> 
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 transition-all" />
