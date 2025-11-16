@@ -491,74 +491,87 @@ export default function App() {
                     }}
                 >
                     {/* Flex Container for Search Bar and Button */}
-                    <div className="flex items-center justify-center max-w-5xl mx-auto gap-3">
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => setShowDatabaseDropdown(!showDatabaseDropdown)}
-                                className="h-[56px] px-4 pr-10 bg-blue-800 text-white border-2 border-blue-800 rounded-2xl text-sm font-medium focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-lg hover:shadow-xl hover:bg-blue-700 cursor-pointer whitespace-nowrap"
-                            >
-                                {selectedDatabase
-                                    ? availableDatabases.find(db => db.id === selectedDatabase)?.name
-                                    : 'Select dataset'}
-                            </button>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
+                    <div className="flex-1 search-container">
+                        <div className="">
+                            <div className="flex items-center justify-center max-w-5xl mx-auto gap-3">
+                                <div className='flex flex-row gap-2 items-center'>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowDatabaseDropdown(!showDatabaseDropdown)}
+                                        className="h-[56px] px-4 pr-10 bg-blue-800 text-white border-2 border-blue-800 rounded-2xl text-sm font-medium focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-lg hover:shadow-xl hover:bg-blue-700 cursor-pointer whitespace-nowrap"
+                                    >
+                                        {selectedDatabase
+                                            ? availableDatabases.find(db => db.id === selectedDatabase)?.name
+                                            : 'Select dataset'}
+                                    </button>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
 
-                            {/* Custom Dropdown Menu */}
-                            {showDatabaseDropdown && (
-                                <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-20">
-                                    {availableDatabases.map((db) => (
-                                        <button
-                                            key={db.id}
-                                            type="button"
-                                            onClick={() => {
-                                                setSelectedDatabase(db.id);
-                                                setShowDatabaseDropdown(false);
-                                            }}
-                                            className={`w-full text-left px-4 py-3 text-sm transition-all ${selectedDatabase === db.id
-                                                ? 'bg-blue-50 text-blue-800 font-semibold'
-                                                : 'text-slate-700 hover:bg-blue-50'
-                                                }`}
-                                        >
-                                            {db.name}
-                                        </button>
-                                    ))}
+                                    {/* Custom Dropdown Menu */}
+                                    {showDatabaseDropdown && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-20">
+                                            {availableDatabases.map((db) => (
+                                                <button
+                                                    key={db.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedDatabase(db.id);
+                                                        setShowDatabaseDropdown(false);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-3 text-sm transition-all ${selectedDatabase === db.id
+                                                        ? 'bg-blue-50 text-blue-800 font-semibold'
+                                                        : 'text-slate-700 hover:bg-blue-50'
+                                                        }`}
+                                                >
+                                                    {db.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-                        <div className="flex-1 search-container">
-                            <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 transition-all" />
-                                <input
-                                    type="text"
-                                    value={inputValue}
-                                    onChange={e => setInputValue(e.target.value)}
-                                    onKeyPress={handleKeyPress}
-                                    onFocus={() => {
-                                        setExpanded(true);
-                                    }}
-                                    onBlur={() => {
-                                        setExpanded(false);
-                                    }}
-                                    placeholder="Ask about your data"
-                                    disabled={isLoading}
-                                    autoFocus
-                                    className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-50 shadow-lg hover:shadow-xl focus:shadow-2xl backdrop-blur-sm cursor-pointer"
-                                    style={{
-                                        background: showSuggestions
-                                            ? 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(239,246,255,0.95) 100%)'
-                                            : 'white'
-                                    }}
-                                />
-                            </div>
 
+
+                                <div className='flex-grow'>
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        value={inputValue}
+                                        onChange={e => setInputValue(e.target.value)}
+                                        onKeyPress={handleKeyPress}
+                                        onFocus={() => {
+                                            setExpanded(true);
+                                        }}
+                                        onBlur={() => {
+                                            setExpanded(false);
+                                        }}
+                                        placeholder="Ask about your data"
+                                        disabled={isLoading}
+                                        autoFocus
+                                        className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all disabled:opacity-50 shadow-lg hover:shadow-xl focus:shadow-2xl backdrop-blur-sm cursor-pointer"
+                                        style={{
+                                            background: showSuggestions
+                                                ? 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(239,246,255,0.95) 100%)'
+                                                : 'white'
+                                        }}
+                                    />
+                                </div>
+                                <div>
+                                    {/* DASHBOARD BUTTON */}
+                                    <button
+                                        onClick={() => navigate('/dashboard-builder')}
+                                        className="flex items-center gap-2 px-4 py-4 bg-blue-800 hover:bg-blue-700 text-white rounded-2xl transition-all font-medium shadow-lg hover:shadow-xl whitespace-nowrap text-base"
+                                    >
+
+                                        <span>Dashboard Designer</span>
+                                    </button>
+                                </div>
+                            </div>
                             {/* Loading State (for the search bar area) */}
                             {isLoading && (
-                                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl max-w-4xl mx-auto">
                                     <div className="flex items-center gap-3">
                                         <div className="w-2 h-2 bg-blue-800 rounded-full animate-pulse"></div>
                                         <p className="text-sm text-blue-900">Searching your data...</p>
@@ -566,15 +579,6 @@ export default function App() {
                                 </div>
                             )}
                         </div>
-
-                        {/* DASHBOARD BUTTON */}
-                        <button
-                            onClick={() => navigate('/dashboard-builder')}
-                            className="flex items-center gap-2 px-4 py-4 bg-blue-800 hover:bg-blue-700 text-white rounded-2xl transition-all font-medium shadow-lg hover:shadow-xl whitespace-nowrap text-base"
-                        >
-
-                            <span>Dashboard Designer</span>
-                        </button>
                     </div>
 
                     {/* Error State */}
@@ -586,7 +590,7 @@ export default function App() {
 
                     {!expanded && (
                         <div>
-                        <div className="h-full flex flex-col items-center justify-center px-3 py-10">
+                            <div className="h-full flex flex-col items-center justify-center px-3 py-10">
                                 <div className="max-w-4xl mx-auto w-full">
                                     <div className="text-center">
                                         <h3 className="text-2xl font-semibold text-slate-900">
