@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 import { Download } from "lucide-react";
 import { type CorrelationMatrix as CorrelationMatrixType } from "../types/data";
 import { useRef } from "react";
-import { exportToJPEG } from "../utils/exportUtils";
+import html2canvas from "html2canvas";
 
 interface CorrelationMatrixProps {
   matrix: CorrelationMatrixType;
@@ -11,6 +11,41 @@ interface CorrelationMatrixProps {
 
 export function CorrelationMatrix({ matrix }: CorrelationMatrixProps) {
   const contentRef = useRef<HTMLDivElement>(null);
+
+  const handleExport = async () => {
+  if (!contentRef.current) return;
+
+  // Clone the element
+  const clone = contentRef.current.cloneNode(true) as HTMLElement;
+  
+  // Style the clone with padding
+  clone.style.padding = '24px';
+  clone.style.backgroundColor = '#ffffff';
+  clone.style.position = 'fixed';
+  clone.style.left = '-9999px';
+  clone.style.top = '0';
+  
+  // Add to DOM temporarily
+  document.body.appendChild(clone);
+
+  try {
+    const canvas = await html2canvas(clone, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+    });
+
+    const link = document.createElement('a');
+    link.download = 'correlation-matrix.jpg';
+    link.href = canvas.toDataURL('image/jpeg', 0.95);
+    link.click();
+  } catch (error) {
+    console.error('Export failed:', error);
+  } finally {
+    // Remove the clone
+    document.body.removeChild(clone);
+  }
+};
 
   const getColor = (value: number) => {
     const absValue = Math.abs(value);
@@ -37,7 +72,7 @@ export function CorrelationMatrix({ matrix }: CorrelationMatrixProps) {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => exportToJPEG(contentRef.current, 'correlation-matrix')}
+          onClick={handleExport}
           className="gap-2 bg-blue-800 text-white"
         >
           <Download className="h-4 w-4" />
