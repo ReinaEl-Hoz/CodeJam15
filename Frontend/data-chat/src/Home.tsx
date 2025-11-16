@@ -65,8 +65,6 @@ export default function App() {
 
     const availableDatabases = [
         { id: 'acme', name: 'Acme Corp – Analytics Warehouse' },
-        { id: 'hospital', name: 'General Hospital' },
-
     ];
     
     // Predefined suggestions
@@ -224,7 +222,7 @@ export default function App() {
 
         try {
             // Call chat API
-            const response = await sendChatMessage(content, selectedDatabase);
+            const response = await sendChatMessage(content);
 
             // Check for error response
             if (!response.success || response.error) {
