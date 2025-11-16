@@ -41,7 +41,7 @@ export function CorrelationMatrix({ matrix }: CorrelationMatrixProps) {
           className="gap-2 bg-blue-800 text-white"
         >
           <Download className="h-4 w-4" />
-          Export
+          Download
         </Button>
       </CardHeader>
       <CardContent>
