@@ -1,33 +1,25 @@
 import React from "react";
 import Plot from "react-plotly.js";
+import "./DynamicChart.css"; // reuse the same container styling
 
-export type HierarchicalDataItem = {
+export interface HierarchicalDataItem {
   id: string;
   parent: string; // empty string for root
   value: number;
-  [key: string]: any; // extra metadata if needed
-};
-
-export interface HierarchicalSeriesConfig {
-  labelKey: string;    // which field to use for labels
-  parentKey: string;   // which field to use for parents
-  valueKey: string;    // which field to use for values
-  type?: "sunburst" | "treemap"; // chart type
-  name?: string;       // optional series name
 }
 
 export interface HierarchicalChartProps {
   data: HierarchicalDataItem[];
-  series?: HierarchicalSeriesConfig[]; // allow multiple hierarchies
+  chartType?: "sunburst" | "treemap"; // default sunburst
   title?: string;
   layoutOptions?: Partial<Plotly.Layout>;
 }
 
 const HierarchicalChart: React.FC<HierarchicalChartProps> = ({
   data,
-  series,
+  chartType = "sunburst",
   title,
-  layoutOptions,
+  layoutOptions
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
@@ -38,42 +30,73 @@ const HierarchicalChart: React.FC<HierarchicalChartProps> = ({
     const updateDimensions = () => {
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
-        setDimensions({ width: width - 32, height: height - 32 });
+        setDimensions({ 
+          width: width - 32,
+          height: height - 32 
+        });
       }
     };
 
     updateDimensions();
-    window.addEventListener("resize", updateDimensions);
-    return () => window.removeEventListener("resize", updateDimensions);
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
-  // Default single series if none provided
-  const seriesConfig: HierarchicalSeriesConfig[] =
-    series && series.length > 0
-      ? series
-      : [{ labelKey: "id", parentKey: "parent", valueKey: "value", type: "sunburst" }];
+  const labels = data.map(d => d.id);
+  const parents = data.map(d => d.parent);
+  const values = data.map(d => d.value);
 
-  const plotData: Partial<Plotly.PlotData>[] = seriesConfig.map((s) => ({
-    type: s.type || "sunburst",
-    labels: data.map((d) => d[s.labelKey]),
-    parents: data.map((d) => d[s.parentKey]),
-    values: data.map((d) => d[s.valueKey]),
-    branchvalues: "total",
-    hoverinfo: "label+value+percent parent",
-    name: s.name,
-  }));
+  const plotData: Partial<Plotly.PlotData>[] = [
+    {
+      type: chartType,
+      labels,
+      parents,
+      values,
+      branchvalues: "total",
+      hoverinfo: "label+value+percent parent",
+      marker: {
+        colors: ['#2E5090', '#4A7BC8', '#6B9BD8', '#8FB3E8', '#B3CCF5'],
+      },
+    },
+  ];
 
   const layout: Partial<Plotly.Layout> = {
-    title: { text: title || "Hierarchical Chart" },
-    margin: { l: 0, r: 0, b: 0, t: 30 },
     autosize: true,
+    responsive: true,
+    width: undefined,
+    height: undefined,
+    title: {
+      text: layoutOptions?.title?.text || title || '',
+      font: {
+        family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        size: 18,
+        color: '#1a1a1a',
+      },
+    },
+    margin: { l: 60, r: 40, t: 60, b: 60 },
+    font: {
+      family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      size: 12,
+      color: '#4a4a4a',
+    },
+    plot_bgcolor: '#ffffff',
+    paper_bgcolor: '#ffffff',
     ...layoutOptions,
   };
 
   return (
-    <div ref={containerRef} style={{ width: "100%", height: 400 }}>
+    <div ref={containerRef} className="dynamic-chart-container">
       {dimensions.width > 0 && (
-        <Plot data={plotData} layout={{ ...layout, width: dimensions.width, height: 400 }} />
+        <Plot
+          style={{ width: "100%", height: "100%" }}
+          data={plotData}
+          layout={layout}
+          config={{
+            displayModeBar: false,
+            displaylogo: false,
+            modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+          }}
+        />
       )}
     </div>
   );
