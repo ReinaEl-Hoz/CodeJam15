@@ -157,7 +157,7 @@ const PlotlyWidget: React.FC<PlotlyWidgetProps> = ({
           }}
           config={{
             responsive: true,
-            displayModeBar: true,
+            displayModeBar: false,
             displaylogo: false,
           }}
           style={{ width: '100%', height: '100%' }}
