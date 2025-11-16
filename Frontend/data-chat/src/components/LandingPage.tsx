@@ -1,11 +1,12 @@
 import { ArrowRight } from 'lucide-react';
-import DotGrid from './DotGrid'; // Import the new background component
+import DotGrid from './DotGrid';
+import { useNavigate } from "react-router-dom";
 
-interface LandingPageProps {
-  onGetStarted: () => void;
-}
-
-export function LandingPage({ onGetStarted }: LandingPageProps) {
+export default function LandingPage() {
+  const navigate = useNavigate();
+  const onGetStarted = () => {
+    navigate("/query-data");
+  };
   return (
     // Set min-h-screen to ensure the wrapper covers the viewport for the grid
     <div className="relative w-screen min-h-screen bg-slate-50 overflow-hidden">
