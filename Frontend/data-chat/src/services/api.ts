@@ -154,3 +154,30 @@ export const getKeyInsights = async (query: string): Promise<KeyInsightsData> =>
 
   return result.data;
 };
+
+export interface GenerateInsightsResponse {
+  success: boolean;
+  insights?: string;
+  error?: string;
+}
+
+export const generateInsights = async (insightsData: import("../types/data").KeyInsightsData, sqlQuery?: string): Promise<string> => {
+  const response = await fetch(`${API_BASE_URL}/generate-insights`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      insights_data: insightsData,
+      sql_query: sqlQuery,
+    }),
+  });
+
+  const result: GenerateInsightsResponse = await response.json();
+
+  if (!result.success || !result.insights) {
+    throw new Error(result.error || 'Failed to generate insights');
+  }
+
+  return result.insights;
+};

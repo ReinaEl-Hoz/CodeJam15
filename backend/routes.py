@@ -353,5 +353,64 @@ def profile_report():
             'error': str(e)
         }), 500
 
+@api.route('/generate-insights', methods=['POST'])
+def generate_nl_insights():
+    """
+    Generate natural language insights from structured insights data
+    Expected JSON body:
+    {
+        "insights_data": {...},  # Output from get_key_insights()
+        "sql_query": "SELECT * FROM ..."  # Optional: the SQL query that generated the insights
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Request body is required'
+            }), 400
+        
+        insights_data = data.get('insights_data')
+        sql_query = data.get('sql_query')
+        
+        if not insights_data:
+            return jsonify({
+                'success': False,
+                'error': 'insights_data is required'
+            }), 400
+        
+        # Get wrapper instance
+        wrapper = get_wrapper()
+        
+        # Generate NL insights
+        print("\n" + "=" * 70)
+        print("GENERATING NATURAL LANGUAGE INSIGHTS")
+        print("=" * 70)
+        print(f"SQL Query: {sql_query or 'N/A'}")
+        print("-" * 70)
+        
+        nl_insights = wrapper.generate_insights(insights_data, sql_query)
+        
+        print("\n" + "=" * 70)
+        print("NATURAL LANGUAGE INSIGHTS:")
+        print("=" * 70)
+        print(nl_insights)
+        print("=" * 70 + "\n")
+        
+        return jsonify({
+            'success': True,
+            'insights': nl_insights
+        })
+        
+    except Exception as e:
+        error_msg = str(e)
+        print(f"\n Error generating insights: {error_msg}\n")
+        return jsonify({
+            'success': False,
+            'error': error_msg
+        }), 500
+
 if __name__ == "__main__":
     print(get_key_insights("SELECT date, total_revenue FROM daily_revenue ORDER BY date"))

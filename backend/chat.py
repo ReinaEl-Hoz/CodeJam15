@@ -105,50 +105,50 @@ class GeminiSQLWrapper:
         
         prompt = f"""You are a SQL query generator and data visualization assistant.
 
-{self.input_schema}
+        {self.input_schema}
 
-USER REQUEST: "{user_input}"
+        USER REQUEST: "{user_input}"
 
-Generate SQL queries and chart metadata based on the user's request.
+        Generate SQL queries and chart metadata based on the user's request.
 
-Return ONLY a JSON object with this EXACT structure:
-{{
-  "queries": [
-    {{
-      "name": "descriptive_name_snake_case",
-      "sql": "SELECT * FROM table_name WHERE condition ORDER BY column_name;",
-      "suggested_chart": {{
-        "type": "line" OR "bar" ONLY,
-        "x": "column_name_for_x_axis",
-        "y": "column_name_for_y_axis",
-        "title": "Descriptive Chart Title"
-      }}
-    }}
-  ]
-}}
+        Return ONLY a JSON object with this EXACT structure:
+        {{
+        "queries": [
+            {{
+            "name": "descriptive_name_snake_case",
+            "sql": "SELECT * FROM table_name WHERE condition ORDER BY column_name;",
+            "suggested_chart": {{
+                "type": "line" OR "bar" ONLY,
+                "x": "column_name_for_x_axis",
+                "y": "column_name_for_y_axis",
+                "title": "Descriptive Chart Title"
+            }}
+            }}
+        ]
+        }}
 
-OR if the request is out of scope or cannot be visualized:
+        OR if the request is out of scope or cannot be visualized:
 
-{{
-  "error": "The request is out of scope. Please ask questions about the database tables: customers, products, orders, departments, payroll, expenses, or daily_revenue. \nOnly simple line or bar charts are supported."
-}}
+        {{
+        "error": "The request is out of scope. Please ask questions about the database tables: customers, products, orders, departments, payroll, expenses, or daily_revenue. \nOnly simple line or bar charts are supported."
+        }}
 
-Rules:
-- Only use tables and columns from the schema
-- Generate valid SQL with proper syntax
-- Chart type MUST be "line" (for time series) or "bar" (for categories) ONLY
-- Use DuckDB syntax for the SQL query
-- CRITICAL: Always use SELECT * FROM table (not SELECT specific columns)
-- If the user requests aggregated data (sums, counts, etc.), select as many columns as possible
-- When comparing time data, make sure the types are compatible
-- x,y field MUST be a single string column name, NEVER an array
-- If user asks about unrelated topics, return error JSON
-- Include semicolon at end of SQL
-- Use descriptive snake_case names
-- No markdown, no explanation, just raw JSON
+        Rules:
+        - Only use tables and columns from the schema
+        - Generate valid SQL with proper syntax
+        - Chart type MUST be "line" (for time series) or "bar" (for categories) ONLY
+        - Use DuckDB syntax for the SQL query
+        - CRITICAL: Always use SELECT * FROM table (not SELECT specific columns)
+        - If the user requests aggregated data (sums, counts, etc.), select as many columns as possible
+        - When comparing time data, make sure the types are compatible
+        - x,y field MUST be a single string column name, NEVER an array
+        - If user asks about unrelated topics, return error JSON
+        - Include semicolon at end of SQL
+        - Use descriptive snake_case names
+        - No markdown, no explanation, just raw JSON
 
-CRITICAL: Return ONLY the JSON object, nothing else.
-"""
+        CRITICAL: Return ONLY the JSON object, nothing else.
+        """
 
         response = self.client.models.generate_content(
             model=self.model,
@@ -168,6 +168,118 @@ CRITICAL: Return ONLY the JSON object, nothing else.
         except Exception as e:
             print(f"Failed to parse response: {raw}")
             raise ValueError(f"Failed to parse Gemini response: {e}")
+    
+
+    def generate_insights(self, insights_data: dict, sql_query: str = None) -> str:
+        """Generate natural language insights from structured insights data"""
+        
+        # Format the insights data for the prompt
+        insights_summary = {
+            "overview": insights_data.get("overview", {}),
+            "column_count": len(insights_data.get("columns", [])),
+            "numeric_columns": [col["name"] for col in insights_data.get("columns", []) if col.get("stats")],
+            "correlations_count": len(insights_data.get("correlations", [])),
+            "strong_correlations": insights_data.get("correlations", [])[:5],  # Top 5
+            "columns_with_stats": [
+                {
+                    "name": col["name"],
+                    "type": col["type"],
+                    "missing": col.get("missing", 0),
+                    "missing_percent": col.get("missing_percent", 0),
+                    "stats": col.get("stats")
+                }
+                for col in insights_data.get("columns", [])
+                if col.get("stats")
+            ]
+        }
+        
+        prompt = f"""You are a data analyst providing insights from a dataset analysis.
+
+SQL QUERY ANALYZED: {sql_query or "N/A"}
+
+DATASET OVERVIEW:
+- Total Rows: {insights_summary['overview'].get('row_count', 0):,}
+- Total Columns: {insights_summary['overview'].get('column_count', 0)}
+- Memory Usage: {insights_summary['overview'].get('memory_usage', 0):.2f} MB
+- Duplicate Rows: {insights_summary['overview'].get('duplicate_rows', 0)}
+
+NUMERIC COLUMNS ANALYZED: {len(insights_summary['numeric_columns'])}
+{', '.join(insights_summary['numeric_columns']) if insights_summary['numeric_columns'] else 'None'}
+
+COLUMN STATISTICS:
+"""
+        
+        for col in insights_summary['columns_with_stats'][:5]:  # Top 5 columns
+            stats = col.get('stats', {})
+            
+            # Format numeric values safely
+            def format_stat(value):
+                if value is None or not isinstance(value, (int, float)):
+                    return 'N/A'
+                return f"{value:,.2f}"
+            
+            mean_val = format_stat(stats.get('mean'))
+            median_val = format_stat(stats.get('median'))
+            std_val = format_stat(stats.get('std'))
+            min_val = format_stat(stats.get('min'))
+            max_val = format_stat(stats.get('max'))
+            
+            prompt += f"""
+- {col['name']} ({col['type']}):
+  * Missing Values: {col.get('missing', 0)} ({col.get('missing_percent', 0):.1f}%)
+  * Mean: {mean_val}
+  * Median: {median_val}
+  * Std Dev: {std_val}
+  * Range: {min_val} to {max_val}
+"""
+        
+        if insights_summary['strong_correlations']:
+            prompt += f"""
+CORRELATIONS FOUND: {insights_summary['correlations_count']} correlation pairs
+Top Correlations:
+"""
+            for corr in insights_summary['strong_correlations'][:3]:
+                prompt += f"- {corr.get('col1', '')} ↔ {corr.get('col2', '')}: {corr.get('correlation', 0):.3f}\n"
+        
+        prompt += """
+TASK: Generate exactly 3 insights. Focus on HIDDEN relationships and patterns not visible to the naked eye.
+
+INSIGHT 1 - HIDDEN RELATIONSHIPS:
+Analyze correlations between columns. Identify non-obvious relationships that require statistical analysis to detect.
+- Look at correlation values: which columns move together? Why might that be?
+- Compare mean vs median: large gaps indicate skew or outliers
+- Check if correlated columns share underlying drivers
+- Example: "Total revenue and quantity have 0.82 correlation, meaning volume drives 67% of revenue variance"
+
+INSIGHT 2 - HIDDEN PATTERNS OR OUTLIERS:
+Identify statistical patterns that aren't immediately visible.
+- Large std dev relative to mean indicates high variability - why?
+- Min/max values far from median suggest outliers - what do they represent?
+- If no outliers: identify distribution patterns (skew, clusters) or second correlation
+- Example: "Std dev is 60% of mean, indicating wide variation - investigate what drives the high vs low performers"
+
+INSIGHT 3 - ACTIONABLE NEXT STEP:
+Based on the hidden patterns found, what specific investigation or action should happen next?
+- Be specific: which columns to analyze together? What hypothesis to test?
+- Not generic advice, but a concrete next analytical step
+- Example: "Investigate if high-quantity orders correlate with specific time periods or customer segments"
+
+FORMAT:
+Write exactly 3 insights, each starting with "INSIGHT 1:", "INSIGHT 2:", "INSIGHT 3:"
+Each insight is ONE sentence. Be direct, statistical, and practical. Focus on relationships and patterns that require analysis to see.
+No markdown, no wordy explanations, just the insight.
+"""
+        
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+            )
+            
+            nl_insights = response.text.strip()
+            return nl_insights
+        except Exception as e:
+            return f"Error generating insights: {str(e)}"
 
 
 

@@ -8,7 +8,7 @@ import { InteractionPlot } from "./components/InteractionPlot";
 import { TopCorrelations } from "./components/TopCorrelations";
 import { type KeyInsightsData } from "./types/data";
 import { BarChart3 } from "lucide-react";
-import { getKeyInsights } from "./services/api";
+import { getKeyInsights, generateInsights } from "./services/api";
 import "./KeyInsights.css";
 
 export default function KeyInsights() {
@@ -29,6 +29,19 @@ export default function KeyInsights() {
       console.log("Correlations:", insightsData.correlations);
       console.log("Correlation matrix:", insightsData.correlation_matrix);
       setData(insightsData as KeyInsightsData);
+
+      // Generate NL insights (test only - not displayed in UI yet)
+      try {
+        console.log("Generating NL insights...");
+        const nlInsights = await generateInsights(insightsData as KeyInsightsData, sqlQuery);
+        console.log("=".repeat(70));
+        console.log("NATURAL LANGUAGE INSIGHTS (from frontend):");
+        console.log("=".repeat(70));
+        console.log(nlInsights);
+        console.log("=".repeat(70));
+      } catch (error) {
+        console.error("Error generating NL insights:", error);
+      }
     };
 
     fetchData();
