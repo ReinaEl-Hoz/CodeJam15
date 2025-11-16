@@ -28,7 +28,7 @@ export function OverviewCards({ overview }: OverviewCardsProps) {
     },
     {
       title: "Memory Usage",
-      value: `${overview.memory_usage} MB`,
+      value: `${(overview.memory_usage*1000).toFixed(3)} KB`,
       icon: HardDrive,
       color: "text-green-700",
       bgColor: "bg-green-100",
